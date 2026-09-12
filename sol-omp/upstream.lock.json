@@ -76,7 +76,7 @@
         "sourcePath": "src/sol-pi/extensions/evidence-preserving-reducer/provider.ts",
         "sourceGitBlobSha": "630188b161d59b94d4ee0dff030a38480acff6b0",
         "localPath": "src/omp/reducer-provider.ts",
-        "localSha256": "f93401051f57559e274312dcf9e7b92fd9b9a5b7819dcb8e9696eeb705be6d83",
+        "localSha256": "ef3bd62a54d8d3b34d9f447b456fc03f7bcc8fb384cc673725832b34aba4855c",
         "mode": "derived-OMP-public-API-adapter"
       },
       {
@@ -195,9 +195,14 @@
       "model": "glm-5.3-flash",
       "userConfirmed": true
     },
+    "currentUserRoute": {
+      "provider": "opencode-go",
+      "model": "deepseek-v4.1-flash",
+      "reasoning": "unspecified; server default"
+    },
     "implementation": "public session_stop.signal; verified Context projection; no tool_result rewrite",
     "firstRead": "original retained; reduction starts on later Context",
-    "modelE2E": "PASS on runtime commit de54fb99634b0bd968cfb8a9108127a2b9182c1e: synthetic real opencode-go/glm-5.3-flash reducer with opencode-go/deepseek-v4.1-flash high foreground",
+    "modelE2E": "PASS on current working tree: synthetic real opencode-go/deepseek-v4.1-flash reducer and high foreground; exact 288054-byte GLM baseline source",
     "latestModelE2EEvidence": {
       "sourceSha256": "1c1603f7289b3a8750e35c5229c4b0f49ae5ea405345877f0f1857361586de28",
       "sourceBytes": 288054,
@@ -208,7 +213,66 @@
       "result": "PASS; single synthetic success path; no retry or resample",
       "evidenceSha256": "e0a6d4c856d6c9a4e8dbcb3ab2d4220f4e2fbe78ca9ac45d9a1c15aa5ae57d6a"
     },
-    "publicAuth": "ModelRegistry.find + getApiKey(model, sessionId, {signal}) callback + pi-ai.completeSimple",
+    "previousMuseE2EFailure": {
+      "sourceSha256": "f3de999b7477cb4818b89d4fbcd48297f5c37593b2035ba7a90fb8f4c008d4f2",
+      "sourceBytes": 304818,
+      "responseStopReason": "error",
+      "responseDurationMs": 774.2724729999991,
+      "result": "FAIL: stale OAuth bearer was reused; fail-open retained the source",
+      "evidenceRoot": "/tmp/sol-omp-muse-e2e-jOq2Lu"
+    },
+    "latestMuseE2EAttempt": {
+      "sourceSha256": "10c6bbd0d774f3870d82fa30f209e6483d53aa3db1564381aa22a1d04616ebf8",
+      "sourceBytes": 20513,
+      "sourceLines": 183,
+      "requestCount": 1,
+      "responseStopReason": "stop",
+      "responseDurationMs": 9226.036851,
+      "usageComplete": true,
+      "totalTokens": 5758,
+      "estimatedCostUsd": 0.0006892000000000001,
+      "verifiedCount": 1,
+      "verifiedCriticalStates": 3,
+      "receiptBytes": 1308,
+      "result": "PASS: verified receipt projected into the next Context; single synthetic small success path",
+      "evidenceRoot": "/tmp/sol-omp-muse-small-Ek24bF"
+    },
+    "deepSeekSmallE2EAttempt": {
+      "sourceSha256": "640166e8635519e9b191c51dad151d78a61c77b61a41322b6f3b15c5ae6bae54",
+      "sourceBytes": 20513,
+      "sourceLines": 183,
+      "requestCount": 1,
+      "responseStopReason": "stop",
+      "responseDurationMs": 4031.5604700000004,
+      "usageComplete": true,
+      "totalTokens": 5503,
+      "estimatedCostUsd": 0.0010401,
+      "verifiedCount": 1,
+      "verifiedCriticalStates": 3,
+      "receiptBytes": 1658,
+      "uncertain": false,
+      "result": "PASS: verified receipt projected into the next Context; single synthetic small success path",
+      "evidenceRoot": "/tmp/sol-omp-deepseek-small-NNyx1U"
+    },
+    "latestDeepSeekE2EAttempt": {
+      "sourceSha256": "1c1603f7289b3a8750e35c5229c4b0f49ae5ea405345877f0f1857361586de28",
+      "sourceBytes": 288054,
+      "sourceLines": 2801,
+      "requestCount": 1,
+      "responseStopReason": "stop",
+      "responseDurationMs": 8995.834952000001,
+      "usageComplete": true,
+      "totalTokens": 82816,
+      "estimatedCostUsd": 0.01301955,
+      "verifiedCount": 1,
+      "verifiedCriticalStates": 6,
+      "receiptBytes": 1781,
+      "uncertain": true,
+      "result": "PASS: exact GLM source baseline; six quotes verified and receipt projected into next Context",
+      "evidenceRoot": "/tmp/sol-omp-deepseek-large-Tds091",
+      "glmComparison": "GLM 4592.737131ms, 69242 tokens, $0.0052481, uncertain=false; GLM wins this single exact-source comparison"
+    },
+    "publicAuth": "ModelRegistry.find + ModelRegistry.resolver(model, sessionId) + pi-ai.completeSimple; central OAuth refresh/rotation policy retained",
     "dependency": "@oh-my-pi/pi-ai@18.1.18 direct peer/dev; no dependency upgrades",
     "checks": {
       "typecheck": "PASS",

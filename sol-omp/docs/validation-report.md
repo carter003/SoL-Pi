@@ -4,6 +4,40 @@
 
 日期：2026-09-12。当前运行源码、测试、来源锁和 `bun.lock` 已纳入同一 Git 快照；用户级 OMP 链接继续指向该 checkout，不再依赖未跟踪运行文件。`bun install --frozen-lockfile --ignore-scripts` 无变更，`bun run typecheck` PASS，`bun test` 70 pass / 0 fail，`bun run smoke` PASS。`upstream.lock.json` 中当前本地文件校验值已复核。安全审计仍为 3 项 high、FAIL；本节不覆盖下方各轮历史测试计数和当时状态。
 
+### DeepSeek 与 GLM 完全同源大日志对比
+
+日期：2026-09-12。DeepSeek Reducer 使用历史 GLM 正式样本的同一 288,054 字节文件、相同 `npm test --silent`、相同 DeepSeek high 前台和相同延迟复核问题；源文件、宿主 Artifact 与 EPR 归档 SHA-256 均为 `1c1603f7289b3a8750e35c5229c4b0f49ae5ea405345877f0f1857361586de28`，归档模式 `0600`。
+
+- DeepSeek：一次 request / response / verified，8,995.8 ms、82,816 tokens、目录估算 $0.01301955，receipt 1,781 字节、`status=success, uncertain=true`。六条状态全部通过逐字引用/hash 校验，下一轮 Context 使用 receipt；前台准确列出六组值和 `release_decision=NO_GO`。
+- GLM 历史同源基线：4,592.7 ms、69,242 tokens、目录估算 $0.0052481，receipt 1,773 字节、`status=success, uncertain=false`，同样六条状态全部验证。
+- DeepSeek 耗时高 95.9%（GLM 快 48.9%）、tokens 高 19.6%、目录估算费用高 148.1%（2.48 倍）。两者关键状态召回均为 6/6；GLM receipt 的 `uncertain=false` 优于 DeepSeek 的 `uncertain=true`。
+- DeepSeek 前台延迟答复准确恢复六条状态，但也主动纠正了首轮回复中两个无来源细节；这说明 EPR receipt 正确，不代表前台自由文本无幻觉。证据位于 `/tmp/sol-omp-deepseek-large-Tds091/`。
+
+判定：**本次完全同源单样本中 GLM-5.3-Flash 整体优于 DeepSeek V4.1 Flash**；质量主指标均通过，但 GLM 更确定、更快、token 更少且更便宜。
+
+### 当前 DeepSeek V4.1 Flash Reducer 真实 E2E
+
+日期：2026-09-12。用户配置已从 Muse 切换为目录规范 id `opencode-go/deepseek-v4.1-flash`；前台同样使用 DeepSeek high。复用 Muse 小样本的 180 行确定性合成生成器、同一 native `npm test --silent` 和同一禁止工具的延迟复核问题。
+
+- 工具观察为 20,513 字节、183 行，SHA-256 `640166e8635519e9b191c51dad151d78a61c77b61a41322b6f3b15c5ae6bae54`；同值 `0600` EPR 归档逐字节一致。
+- Reducer 恰好一次 request / response / verified：4,031.6 ms、5,503 tokens、目录标价估算 $0.0010401；生成 1,658 字节 `status=success, uncertain=false` receipt。
+- 三条 `CRITICAL_STATE` 在 21、91、161 行通过逐字引用/hash 校验；下一轮 Context 为 receipt（`hasReceipt=true`），前台不调用工具并准确列出 `unit_suite=PASS`、`integration_suite=NOT_RUN`、`release_decision=NO_GO`。宿主 exit 0、两轮 agent_end、一次 native bash。
+- 与修复后 Muse 的同规模语义样本相比，两者状态质量均为 3/3；DeepSeek Reducer 4,031.6 ms 对 Muse 9,226.0 ms，约快 56.3%，tokens 少 4.4%，但目录估算费用 $0.0010401 对 $0.0006892，约高 50.9%。两次日志仅 wall-time 尾注不同，不是重复统计样本。
+
+判定：**DeepSeek V4.1 Flash Reducer 单样本真实 E2E PASS**，当前用户路由已切换。证据位于 `/tmp/sol-omp-deepseek-small-NNyx1U/`；仅覆盖一个小型合成成功路径。
+
+### 当前 Muse Reducer 真实 E2E 与认证修复
+
+日期：2026-09-12。当前用户配置为 `opencode-go/muse-spark-1.3-contributor`；没有 reducer reasoning 配置或调用参数，实际档位仍由服务端默认决定。
+
+- 首次 304,818 字节、2,800 行样本中，Muse request 在 774.3 ms 后返回 `stopReason=error`，`usageComplete=false`，没有 receipt；fail-open 保留 51,365 字节宿主截断观察。证据位于 `/tmp/sol-omp-muse-e2e-jOq2Lu/`。
+- 普通 OMP Muse 调用以及显式 reasoning off/low 均成功；20,513 字节小样本仍失败，排除基本路由、认证缺失、reasoning 默认值和输入规模。隔离 `completeSimple` 探针显示：`getApiKey` 回调和预取静态 bearer 均失败，`ModelRegistry.resolver(model, sessionId)` 成功返回 `pong`（41 tokens）。根因为适配器回调忽略认证错误上下文，重复返回同一被拒 OAuth bearer，绕过 OMP 的刷新/轮换策略。
+- 修复后真实 EPR 复测：一次 native `npm test --silent` 产生 20,513 字节、183 行；Muse 恰好一次 request / response / verified，9,226.0 ms、5,758 tokens、目录标价估算 $0.0006892，生成 1,308 字节 `status=success, uncertain=true` receipt。
+- verified 事件含三条逐字引用：`unit_suite=PASS`（21）、`integration_suite=NOT_RUN`（91）、`release_decision=NO_GO`（161）。下一轮 Context 为 receipt（`hasReceipt=true`），前台在禁止工具时准确列出三组值和发布结论。
+- 来源及 `0600` EPR 归档均为 20,513 字节，SHA-256 `10c6bbd0d774f3870d82fa30f209e6483d53aa3db1564381aa22a1d04616ebf8`。宿主 exit 0、两轮 agent_end、一次 native bash；证据位于 `/tmp/sol-omp-muse-small-Ek24bF/`。
+
+判定：**Muse Reducer 单样本真实 E2E PASS**。仅证明当前小型合成成功路径和 OAuth bearer 刷新兼容性；首次大日志失败仍是有效历史证据，大日志修复后成功、重复稳定性、业务日志、取消/重启及普遍费用/速度均未验证。
+
 ### 最新提交真实 EPR E2E（DeepSeek 前台）
 
 日期：2026-09-12。监督者委派一个子代理，在运行源码 commit `de54fb99634b0bd968cfb8a9108127a2b9182c1e` 上执行唯一正式合成样本；无重试、无补样、无仓库或用户永久配置修改。前台显式启动 `opencode-go/deepseek-v4.1-FLASH`、`--thinking high`，OMP 目录规范化记录为 `opencode-go/deepseek-v4.1-flash` 且非 fallback；Reducer 保持 `opencode-go/glm-5.3-flash`。
@@ -25,7 +59,7 @@
 - Linux/WSL2，Node 24.15.0、Bun 1.3.14、OMP 18.1.18。真实独立宿主仍为既有 OMP，扩展经用户级链接自动加载；固定 npm 宿主另做无模型加载 smoke。
 - 主模型始终 `openai-codex/gpt-6-astra`，high；ObservationPack=true；原生 `providers.openai-codex.codeMode=on`、`bash.autoBackground.enabled=false` 不变；`sol-omp.actionFusion=false`，没有 then_run。
 - 先通过 `omp models ls --json` 与真实无提示词宿主探针检查公开模型列表/认证可用性，说明日志全文外发及额外费用。用户选择 **`opencode-go/glm-5.3-flash`**。之后才启用并发送合成日志。没有输出或复制凭证，没有修改主模型认证或权限策略。
-- 当前用户级 `/home/carter003/.omp/agent/sol-omp.json`：`version=1, observationPack=true, actionFusion=false, evidencePreservingReducer=true, provider=opencode-go, model=glm-5.3-flash`（provider/model 对应完整 EPR 字段名）。默认 timeout=90000 ms。测试用 500 ms 配置已恢复；故障路由仅存在于隔离进程，退出后失效。新会话自动生效，已有进程需重启。
+- 当时用户级 `/home/carter003/.omp/agent/sol-omp.json`：`version=1, observationPack=true, actionFusion=false, evidencePreservingReducer=true, provider=opencode-go, model=glm-5.3-flash`（provider/model 对应完整 EPR 字段名）。这是历史 GLM 验证时状态，不是当前 Muse 配置。默认 timeout=90000 ms。测试用 500 ms 配置已恢复；故障路由仅存在于隔离进程，退出后失效。
 - 初期只测试 `/tmp/sol-omp-epr-runtime-xf8oonnb/project/` 的合成 npm/Node 日志；未发送业务日志。全局开关不是合成数据过滤器，未来业务主会话也会按规则外发诊断日志；仍需合成限定时，应在进入业务项目之前关闭。
 
 ### 公开接口与实现判定
@@ -92,7 +126,7 @@ OMP `registry.resolver` 在锁定版初次认证未传 signal，因此没有照�
 - `bun run typecheck`：**PASS**，最终 `tsc --noEmit`。首次因 OMP systemPrompt 要求 string[] 失败，修正后重跑；未关闭 strict。
 - `bun test`：**PASS，59 pass / 0 fail，5 files**。最终严格配置回归先复现显式 null 超时被默认值吞掉（6 pass / 1 fail），再修正为仅 undefined 使用默认值；原回归转为通过。新增证据/归档和会话生命周期回归，不用 fake API 证明真实模型。
 - `bun run smoke`：**PASS**，两个固定 npm OMP 18.1.18 加载、公开目录、工具注册、EOF 正常退出；不发送模型请求。真实独立宿主 EPR 链路另列于上表。
-- 清理后再次用用户级插件自动发现启动真实 OMP RPC，不发模型提示词，确认 EPR route=opencode-go/glm-5.3-flash、主模型 gpt-6-astra/high、正常 exit 0。
+- 当时清理后再次用用户级插件自动发现启动真实 OMP RPC，不发模型提示词，确认历史 EPR route=opencode-go/glm-5.3-flash、主模型 gpt-6-astra/high、正常 exit 0。
 - 没有重新安装或升级依赖。现有 pi-ai 18.1.18 补为直接 peer/dev 依赖；既存未跟踪 bun.lock 只同步根声明。**此前 adm-zip/sharp 共 3 项 high 告警仍未修复，安全审计维持 FAIL，不改记 PASS。**
 - LSP 初始化找不到根工作区 TypeScript，引用查询不可用；记录错误后按可见调用点适配，独立适配包的完整 tsc 类型检查仍通过。
 - 首次大对象显示在 native eval 中被截断，无法精确匹配源日志，EPR 全文回退；改用 `display(result.text)` 后真实大日志链路通过。两次初期模型复制了代码后的句号，发生 SyntaxError 后更正；全部前台调用计入探路成本，正式配对使用同一 fenced JS 提示，无该问题。

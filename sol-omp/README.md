@@ -112,7 +112,7 @@ omp --extension "$SOL_OMP_ROOT/tests/fixtures/model-observation.ts"
 
 ## Evidence-Preserving Reducer：配置、外发与运行边界
 
-本轮用户确认的路由为 **`opencode-go/glm-5.3-flash`**。当前用户级 `/home/carter003/.omp/agent/sol-omp.json` 已启用；普通新 OMP 主会话自动加载，已有进程须重启。只对合成日志做过验证，未发送业务日志。配置示例：
+当前用户级 `/home/carter003/.omp/agent/sol-omp.json` 已切换为 **`opencode-go/deepseek-v4.1-flash`**；普通新 OMP 主会话自动加载，已有进程须重启。2026-09-12 DeepSeek 在与历史 GLM 完全相同的 288,054 字节大日志上生成 1,781 字节有效 receipt，六条 `CRITICAL_STATE` 全部保留，单样本 E2E **PASS**。但同源对比中 DeepSeek Reducer 为 8,995.8 ms / 82,816 tokens / $0.01301955 / `uncertain=true`，GLM 为 4,592.7 ms / 69,242 tokens / $0.0052481 / `uncertain=false`；当前证据下 GLM 在速度、token、费用和 receipt 确定性上更优，两者关键状态均为 6/6。Muse 的失败、修复与成功证据也继续保留；单次样本不证明稳定性或普遍收益。当前实现不传 reducer reasoning，实际档位由服务端默认决定。配置示例：
 
 ```json
 {
@@ -121,13 +121,13 @@ omp --extension "$SOL_OMP_ROOT/tests/fixtures/model-observation.ts"
   "actionFusion": false,
   "evidencePreservingReducer": true,
   "evidencePreservingReducerProvider": "opencode-go",
-  "evidencePreservingReducerModel": "glm-5.3-flash"
+  "evidencePreservingReducerModel": "deepseek-v4.1-flash"
 }
 ```
 
 关闭时只将 `evidencePreservingReducer` 改为 `false` 并重启；保留模型字段无妨。不要调整原生 Code Mode、主模型或 `actionFusion` 来代替这个开关。配置超时默认 90000 ms，可用 `evidencePreservingReducerTimeoutMs` 调小。生命周期补修后，整个 settle 队列另受 `min(25000 ms, 配置超时)` 的共享预算约束，为 OMP 18.1.18 的 30 秒 handler 预算预留取消清理时间；预算耗尽保留原文、不接受迟到 receipt、不重试。该余量不保证不响应取消的供应商或卡死 I/O 能按时退出。启用开关不是“合成数据沙箱”：将来符合条件的业务诊断日志也会发送到该路由；若仍仅允许合成数据，进入业务工作前先关闭。
 
-**外发和费用：** 辅助请求包含日志全文、命令 hash、来源 hash、大小、行数及失败状态，不带完整会话或明文命令。日志本身可能含代码或凭证；沿用上游的疑似敏感内容过滤只是保守启发式，不保证检出全部秘密。凭证只由 OMP 公开认证 API 在请求中解析，不复制认证文件、不持久化密钥、不用私有会话接口。当前宿主目录标价为输入 $0.075、输出 $0.25、cache read $0.015／百万 token；模型另标注“2x usage”，订阅额度与美元估算不同。不是免费能力或账单承诺。辅助调用不自动进入前台 `get_session_stats`；须另加 stderr 的 `SOL_OMP_EPR` response 中 attempts、usage、cost 和 durationMs。`usageComplete=false` 的错误/取消请求不能按零成本结算。
+**外发和费用：** 辅助请求包含日志全文、命令 hash、来源 hash、大小、行数及失败状态，不带完整会话或明文命令。日志本身可能含代码或凭证；沿用上游的疑似敏感内容过滤只是保守启发式，不保证检出全部秘密。凭证只由 OMP 公开认证 API 在请求中解析，不复制认证文件、不持久化密钥、不用私有会话接口。2026-09-12 目录标价：当前 DeepSeek 输入 $0.15、输出 $0.60、cache read $0.003；Muse 输入 $0.10、输出 $0.20、cache read $0.002；历史 GLM 输入 $0.075、输出 $0.25、cache read $0.015，均为每百万 token。目录标价、订阅额度与实际账单不是同一口径。辅助调用不自动进入前台 `get_session_stats`；须另加 stderr 的 `SOL_OMP_EPR` response 中 attempts、usage、cost 和 durationMs。`usageComplete=false` 的错误/取消请求不能按零成本结算。
 
 **时序：** OMP 18.1.18 的 `tool_result` / `context` 没有公开取消 signal，因此这里只收集候选；在公开 `session_stop.signal` 下依次等待辅助请求，不创建后台任务或自动续跑。首轮主模型仍读全文，receipt 从后续 Context 开始使用；不能减少首次读取或同一尚未结束长任务内的读取。宿主不向子代理发出该 settle hook，子代理不承诺 reducer 调用；没 receipt 就保留原文。
 
@@ -144,7 +144,7 @@ omp --extension "$SOL_OMP_ROOT/tests/fixtures/model-observation.ts"
 
 归档是 OMP 实际交给扩展的完整观察文本；不是工具截断前的全部 stdout。此适配不读取 Pi 临时文件或猜测 OMP artifact 私有路径。文件 `0600`，目录 `0700`；新文件 fsync 后才使用，已有对象逐字节/hash 校验，Context 使用前也复核归档。原会话不改写；关闭、重启或卸载不删除归档。按 receipt 的 `source_artifact` 用原生 `read` 加明确行范围读取；已验证退出后恢复同一 session 能完整读回。引用真实不代表摘要完整，证据分类也不是语义证明；诊断、修复和最终通过判定仍由主模型负责。
 
-**本轮收益：** 在 ObservationPack 已开启的三对短任务中，前台 token −5.55%，但加上 3 次 reducer 后总 token **+2.59%**、标价估算 **+29.29%**、累计耗时 **+8.91%**。累计观察重放字节 −44.68%。这组样本没有总体省钱或提速收益；适合性取决于后续重放次数、缓存与回读需求。完整调用/故障/费用见 [验证报告](docs/validation-report.md) 和 [本轮结构化证据](docs/epr-comparison-2026-09-12.json)。
+**历史 GLM 对照收益：** 在 ObservationPack 已开启的三对短任务中，前台 token −5.55%，但加上 3 次 reducer 后总 token **+2.59%**、标价估算 **+29.29%**、累计耗时 **+8.91%**。累计观察重放字节 −44.68%。这组样本没有总体省钱或提速收益；不能外推到当前 Muse 路由。完整调用/故障/费用见 [验证报告](docs/validation-report.md) 和 [历史结构化证据](docs/epr-comparison-2026-09-12.json)。
 
 复现：在没有业务文件的临时 npm 项目中生成合成诊断输出，执行 `npm test`，随后发送两个不调用工具的证据复核问题；两组仅切换 reducer。数据文件保留完整测试脚本及三个相同提示词。Code Mode 应 `display(result.text)`；直接打印巨大的结果对象可能先被宿主截断，适配会拒绝用完整日志的 receipt 替换无法精确对应的投影。
 

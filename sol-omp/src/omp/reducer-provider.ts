@@ -74,15 +74,9 @@ export async function callReducer(
         timestamp: Date.now(),
       }],
     }, {
-      // OMP 18.1.18 resolver(model, sessionId) drops the initial auth signal.
-      // Use its signal-bearing public API inside the request-local resolver;
-      // the adapter never stores, logs, or separately resolves credentials.
-      apiKey: async () => {
-        operationSignal.throwIfAborted();
-        const key = await registry.getApiKey(model, sessionId, { signal: operationSignal });
-        operationSignal.throwIfAborted();
-        return key;
-      },
+      // Use OMP's central resolver so a rejected OAuth bearer is refreshed or
+      // rotated according to the host's authentication retry policy.
+      apiKey: registry.resolver(model, sessionId),
       cacheRetention: "none",
       maxTokens: Math.min(config.maxOutputTokens, model.maxTokens ?? config.maxOutputTokens),
       sessionId: config.runId,
