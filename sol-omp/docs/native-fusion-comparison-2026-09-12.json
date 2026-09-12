@@ -1,0 +1,900 @@
+{
+  "date": "2026-09-12",
+  "implementation": "OMP native eval tool bridge; NOT sol-omp Action Fusion / then_run",
+  "userDecision": "Explicitly selected native eval fusion alternative after protected extension dispatch was unavailable.",
+  "checkout": {
+    "root": "/home/carter003/project/sol-omp",
+    "branch": "main",
+    "commit": "08236ca26f83775e961167d9cefbc38d75027454",
+    "runtimeSourceModified": false,
+    "existingUncommittedWorkPreserved": true
+  },
+  "environment": {
+    "omp": "18.1.18",
+    "binary": "/home/carter003/project/erp-1123/scripts/herdr-tps/.runtime/omp",
+    "bun": "1.3.14",
+    "node": "24.15.0",
+    "npm": "12.0.2",
+    "os": "Linux WSL2 x86_64",
+    "model": "openai-codex/gpt-6-astra",
+    "thinking": "high"
+  },
+  "configuration": {
+    "profile": "default",
+    "scope": "user",
+    "ompConfig": "/home/carter003/.omp/agent/config.yml",
+    "final": {
+      "providers.openai-codex.codeMode": "on",
+      "bash.autoBackground.enabled": false,
+      "eval.autoBackground.enabled": false,
+      "tools.approvalMode": "yolo",
+      "tools.approval": {}
+    },
+    "changed": {
+      "providers.openai-codex.codeMode": {
+        "before": "off",
+        "after": "on"
+      },
+      "bash.autoBackground.enabled": {
+        "before": true,
+        "after": false
+      }
+    },
+    "solOmpConfig": {
+      "path": "/home/carter003/.omp/agent/sol-omp.json",
+      "version": 1,
+      "observationPack": true,
+      "actionFusion": false
+    },
+    "credentialsAndExistingPluginsUnmodified": true
+  },
+  "method": {
+    "samplesPerArm": 3,
+    "baseline": "One user task, two sequential eval cells; first read+edit, second bash validation. Same native tools and error guard.",
+    "fused": "One user task, one eval cell; sequential read+edit+bash with checked() rejecting hasError results.",
+    "nativeToolsPerTask": [
+      "read",
+      "edit",
+      "bash"
+    ],
+    "mutation": "target.txt line 2 old -> new via real hashline snapshot and native edit",
+    "validation": "Real node verify.cjs ok checks file contents and writes process-start and completion evidence.",
+    "sameFinalConfiguration": true,
+    "modelPrompting": "Controlled exact-code instructions; not an autonomous coding-task benchmark. No retries or raw fs/process execution inside eval.",
+    "timing": "Concurrent paired runs on real provider; includes scheduling/network/cache noise, not statistically controlled latency.",
+    "cost": "OMP model-catalog estimate, NOT provider bill; cached and uncached token proportions differ."
+  },
+  "comparison": {
+    "tokens": {
+      "baseline": 106542,
+      "fused": 70839,
+      "changePercent": -33.511
+    },
+    "catalogCost": {
+      "baseline": 0.39270000000000005,
+      "fused": 0.442502,
+      "changePercent": 12.682
+    },
+    "modelResponses": {
+      "baseline": 9,
+      "fused": 6,
+      "changePercent": -33.333
+    },
+    "modelFacingToolCalls": {
+      "baseline": 6,
+      "fused": 3,
+      "changePercent": -50.0
+    },
+    "canonicalToolCalls": {
+      "baseline": 9,
+      "fused": 9,
+      "changePercent": 0.0
+    }
+  },
+  "averagesAndCacheTotals": {
+    "baseline": {
+      "tokens": 35514.0,
+      "cost": 0.13090000000000002,
+      "seconds": 18.70266666666667,
+      "uncachedInput": 26144,
+      "cacheRead": 79360
+    },
+    "fused": {
+      "tokens": 23613.0,
+      "cost": 0.14750066666666667,
+      "seconds": 15.246333333333332,
+      "uncachedInput": 36091,
+      "cacheRead": 33792
+    }
+  },
+  "pairs": [
+    {
+      "index": 1,
+      "baseline": {
+        "status": "PASS",
+        "sessionId": "01a0942d-4932-72a1-a63f-1cf221864ce6",
+        "stats": {
+          "sessionFile": "/tmp/sol-omp-action-fusion-ijvftgcm/final-baseline1/sessions/2026-09-12T05-53-10-962Z_01a0942d-4932-72a1-a63f-1cf221864ce6.jsonl",
+          "sessionId": "01a0942d-4932-72a1-a63f-1cf221864ce6",
+          "userMessages": 1,
+          "assistantMessages": 3,
+          "toolCalls": 2,
+          "toolResults": 2,
+          "totalMessages": 6,
+          "tokens": {
+            "input": 1632,
+            "output": 346,
+            "reasoning": 0,
+            "cacheRead": 33536,
+            "cacheWrite": 0,
+            "total": 35514
+          },
+          "cost": 0.067156,
+          "premiumRequests": 0,
+          "contextUsage": {
+            "tokens": 11952,
+            "contextWindow": 272000,
+            "percent": 4.394117647058823
+          }
+        },
+        "elapsedSeconds": 19.918,
+        "outerToolCalls": [
+          "eval",
+          "eval"
+        ],
+        "innerCalls": [
+          "read",
+          "edit",
+          "bash"
+        ],
+        "mutationApplied": true,
+        "commandStarts": 1,
+        "commandFinished": true
+      },
+      "fused": {
+        "status": "PASS",
+        "sessionId": "01a0942d-4938-7191-86d6-73bcc3fed3f0",
+        "stats": {
+          "sessionFile": "/tmp/sol-omp-action-fusion-ijvftgcm/final-fused1/sessions/2026-09-12T05-53-10-968Z_01a0942d-4938-7191-86d6-73bcc3fed3f0.jsonl",
+          "sessionId": "01a0942d-4938-7191-86d6-73bcc3fed3f0",
+          "userMessages": 1,
+          "assistantMessages": 2,
+          "toolCalls": 1,
+          "toolResults": 1,
+          "totalMessages": 4,
+          "tokens": {
+            "input": 12031,
+            "output": 320,
+            "reasoning": 0,
+            "cacheRead": 11264,
+            "cacheWrite": 0,
+            "total": 23615
+          },
+          "cost": 0.147574,
+          "premiumRequests": 0,
+          "contextUsage": {
+            "tokens": 11893,
+            "contextWindow": 272000,
+            "percent": 4.372426470588235
+          }
+        },
+        "elapsedSeconds": 14.847,
+        "outerToolCalls": [
+          "eval"
+        ],
+        "innerCalls": [
+          "read",
+          "edit",
+          "bash"
+        ],
+        "mutationApplied": true,
+        "commandStarts": 1,
+        "commandFinished": true
+      }
+    },
+    {
+      "index": 2,
+      "baseline": {
+        "status": "PASS",
+        "sessionId": "01a0942e-3d57-7510-ad51-bd4b5ef223d4",
+        "stats": {
+          "sessionFile": "/tmp/sol-omp-action-fusion-ijvftgcm/final-baseline2/sessions/2026-09-12T05-54-13-463Z_01a0942e-3d57-7510-ad51-bd4b5ef223d4.jsonl",
+          "sessionId": "01a0942e-3d57-7510-ad51-bd4b5ef223d4",
+          "userMessages": 1,
+          "assistantMessages": 3,
+          "toolCalls": 2,
+          "toolResults": 2,
+          "totalMessages": 6,
+          "tokens": {
+            "input": 12256,
+            "output": 346,
+            "reasoning": 0,
+            "cacheRead": 22912,
+            "cacheWrite": 0,
+            "total": 35514
+          },
+          "cost": 0.16277200000000003,
+          "premiumRequests": 0,
+          "contextUsage": {
+            "tokens": 11952,
+            "contextWindow": 272000,
+            "percent": 4.394117647058823
+          }
+        },
+        "elapsedSeconds": 17.875,
+        "outerToolCalls": [
+          "eval",
+          "eval"
+        ],
+        "innerCalls": [
+          "read",
+          "edit",
+          "bash"
+        ],
+        "mutationApplied": true,
+        "commandStarts": 1,
+        "commandFinished": true
+      },
+      "fused": {
+        "status": "PASS",
+        "sessionId": "01a0942e-3d0f-72aa-9a51-a14c94c6b25c",
+        "stats": {
+          "sessionFile": "/tmp/sol-omp-action-fusion-ijvftgcm/final-fused2/sessions/2026-09-12T05-54-13-391Z_01a0942e-3d0f-72aa-9a51-a14c94c6b25c.jsonl",
+          "sessionId": "01a0942e-3d0f-72aa-9a51-a14c94c6b25c",
+          "userMessages": 1,
+          "assistantMessages": 2,
+          "toolCalls": 1,
+          "toolResults": 1,
+          "totalMessages": 4,
+          "tokens": {
+            "input": 12033,
+            "output": 321,
+            "reasoning": 0,
+            "cacheRead": 11264,
+            "cacheWrite": 0,
+            "total": 23618
+          },
+          "cost": 0.147644,
+          "premiumRequests": 0,
+          "contextUsage": {
+            "tokens": 11895,
+            "contextWindow": 272000,
+            "percent": 4.373161764705882
+          }
+        },
+        "elapsedSeconds": 15.961,
+        "outerToolCalls": [
+          "eval"
+        ],
+        "innerCalls": [
+          "read",
+          "edit",
+          "bash"
+        ],
+        "mutationApplied": true,
+        "commandStarts": 1,
+        "commandFinished": true
+      }
+    },
+    {
+      "index": 3,
+      "baseline": {
+        "status": "PASS",
+        "sessionId": "01a0942e-3d09-7097-aab6-065ebcf52d98",
+        "stats": {
+          "sessionFile": "/tmp/sol-omp-action-fusion-ijvftgcm/final-baseline3/sessions/2026-09-12T05-54-13-385Z_01a0942e-3d09-7097-aab6-065ebcf52d98.jsonl",
+          "sessionId": "01a0942e-3d09-7097-aab6-065ebcf52d98",
+          "userMessages": 1,
+          "assistantMessages": 3,
+          "toolCalls": 2,
+          "toolResults": 2,
+          "totalMessages": 6,
+          "tokens": {
+            "input": 12256,
+            "output": 346,
+            "reasoning": 0,
+            "cacheRead": 22912,
+            "cacheWrite": 0,
+            "total": 35514
+          },
+          "cost": 0.16277200000000003,
+          "premiumRequests": 0,
+          "contextUsage": {
+            "tokens": 11952,
+            "contextWindow": 272000,
+            "percent": 4.394117647058823
+          }
+        },
+        "elapsedSeconds": 18.315,
+        "outerToolCalls": [
+          "eval",
+          "eval"
+        ],
+        "innerCalls": [
+          "read",
+          "edit",
+          "bash"
+        ],
+        "mutationApplied": true,
+        "commandStarts": 1,
+        "commandFinished": true
+      },
+      "fused": {
+        "status": "PASS",
+        "sessionId": "01a0942e-3d2c-7264-9acc-79975bd006e9",
+        "stats": {
+          "sessionFile": "/tmp/sol-omp-action-fusion-ijvftgcm/final-fused3/sessions/2026-09-12T05-54-13-420Z_01a0942e-3d2c-7264-9acc-79975bd006e9.jsonl",
+          "sessionId": "01a0942e-3d2c-7264-9acc-79975bd006e9",
+          "userMessages": 1,
+          "assistantMessages": 2,
+          "toolCalls": 1,
+          "toolResults": 1,
+          "totalMessages": 4,
+          "tokens": {
+            "input": 12027,
+            "output": 315,
+            "reasoning": 0,
+            "cacheRead": 11264,
+            "cacheWrite": 0,
+            "total": 23606
+          },
+          "cost": 0.147284,
+          "premiumRequests": 0,
+          "contextUsage": {
+            "tokens": 11889,
+            "contextWindow": 272000,
+            "percent": 4.370955882352941
+          }
+        },
+        "elapsedSeconds": 14.931,
+        "outerToolCalls": [
+          "eval"
+        ],
+        "innerCalls": [
+          "read",
+          "edit",
+          "bash"
+        ],
+        "mutationApplied": true,
+        "commandStarts": 1,
+        "commandFinished": true
+      }
+    }
+  ],
+  "behaviorChecks": {
+    "write": {
+      "scenario": "write",
+      "status": "PASS",
+      "exitCode": 0,
+      "sessionId": "01a09428-c82d-752c-97fd-57fd3c009398",
+      "outerToolCalls": [
+        "eval"
+      ],
+      "innerCalls": [
+        "write",
+        "bash"
+      ],
+      "mutationApplied": true,
+      "commandStarts": 1,
+      "commandFinished": true,
+      "commandFinishedAfterOriginalDeadline": null,
+      "approvals": [],
+      "uiActions": [],
+      "aborted": false
+    },
+    "edit-failure": {
+      "scenario": "edit-failure",
+      "status": "PASS",
+      "exitCode": 0,
+      "sessionId": "01a09428-c80d-7479-b7eb-730613f75fa0",
+      "outerToolCalls": [
+        "eval"
+      ],
+      "innerCalls": [
+        "read",
+        "edit"
+      ],
+      "mutationApplied": false,
+      "commandStarts": 0,
+      "commandFinished": false,
+      "commandFinishedAfterOriginalDeadline": null,
+      "approvals": [],
+      "uiActions": [],
+      "aborted": false
+    },
+    "command-failure-v2": {
+      "scenario": "command-failure",
+      "status": "PASS",
+      "exitCode": 0,
+      "sessionId": "01a0942a-317e-76f6-8465-881afab725e0",
+      "outerToolCalls": [
+        "eval"
+      ],
+      "innerCalls": [
+        "read",
+        "edit",
+        "bash"
+      ],
+      "mutationApplied": true,
+      "commandStarts": 1,
+      "commandFinished": false,
+      "commandFinishedAfterOriginalDeadline": null,
+      "approvals": [],
+      "uiActions": [],
+      "aborted": false
+    },
+    "deny": {
+      "scenario": "deny",
+      "status": "PASS",
+      "exitCode": 0,
+      "sessionId": "01a09428-c808-77e4-84b2-8522776ff52b",
+      "outerToolCalls": [
+        "eval"
+      ],
+      "innerCalls": [
+        "read",
+        "edit"
+      ],
+      "mutationApplied": true,
+      "commandStarts": 0,
+      "commandFinished": false,
+      "commandFinishedAfterOriginalDeadline": null,
+      "approvals": [],
+      "uiActions": [],
+      "aborted": false
+    },
+    "approve": {
+      "scenario": "approve",
+      "status": "PASS",
+      "exitCode": 0,
+      "sessionId": "01a0942a-318a-72fe-9e5a-00d50e59438f",
+      "outerToolCalls": [
+        "eval"
+      ],
+      "innerCalls": [
+        "read",
+        "edit",
+        "bash"
+      ],
+      "mutationApplied": true,
+      "commandStarts": 1,
+      "commandFinished": true,
+      "commandFinishedAfterOriginalDeadline": null,
+      "approvals": [
+        {
+          "kind": "approval_requested",
+          "type": "tool_approval_requested",
+          "sessionId": "01a0942a-318a-72fe-9e5a-00d50e59438f",
+          "toolName": "bash",
+          "toolCallId": "js-bash-05b6b03c-4ec4-4be5-8163-ceb56903c510",
+          "approvalMode": "yolo"
+        },
+        {
+          "kind": "approval_resolved",
+          "type": "tool_approval_resolved",
+          "sessionId": "01a0942a-318a-72fe-9e5a-00d50e59438f",
+          "toolName": "bash",
+          "toolCallId": "js-bash-05b6b03c-4ec4-4be5-8163-ceb56903c510",
+          "approved": true
+        }
+      ],
+      "uiActions": [
+        {
+          "choice": "Approve",
+          "commandHadNotStarted": true,
+          "editAlreadyApplied": true
+        }
+      ],
+      "aborted": false
+    },
+    "reject": {
+      "scenario": "reject",
+      "status": "PASS",
+      "exitCode": 0,
+      "sessionId": "01a0942a-3186-76b0-b20d-5b9d40d440b7",
+      "outerToolCalls": [
+        "eval"
+      ],
+      "innerCalls": [
+        "read",
+        "edit",
+        "bash"
+      ],
+      "mutationApplied": true,
+      "commandStarts": 0,
+      "commandFinished": false,
+      "commandFinishedAfterOriginalDeadline": null,
+      "approvals": [
+        {
+          "kind": "approval_requested",
+          "type": "tool_approval_requested",
+          "sessionId": "01a0942a-3186-76b0-b20d-5b9d40d440b7",
+          "toolName": "bash",
+          "toolCallId": "js-bash-6dba9e7c-2cc1-41ca-b51e-b57a929cfd0f",
+          "approvalMode": "yolo"
+        },
+        {
+          "kind": "approval_resolved",
+          "type": "tool_approval_resolved",
+          "sessionId": "01a0942a-3186-76b0-b20d-5b9d40d440b7",
+          "toolName": "bash",
+          "toolCallId": "js-bash-6dba9e7c-2cc1-41ca-b51e-b57a929cfd0f",
+          "approved": false,
+          "reason": "denied by user"
+        }
+      ],
+      "uiActions": [
+        {
+          "choice": "Deny",
+          "commandHadNotStarted": true,
+          "editAlreadyApplied": true
+        }
+      ],
+      "aborted": false
+    },
+    "intercept": {
+      "scenario": "intercept",
+      "status": "PASS",
+      "exitCode": 0,
+      "sessionId": "01a0942a-3181-733f-b07e-4d3a62ec0382",
+      "outerToolCalls": [
+        "eval"
+      ],
+      "innerCalls": [
+        "read",
+        "edit",
+        "bash"
+      ],
+      "mutationApplied": true,
+      "commandStarts": 0,
+      "commandFinished": false,
+      "commandFinishedAfterOriginalDeadline": null,
+      "approvals": [],
+      "uiActions": [],
+      "aborted": false
+    },
+    "cancel-before": {
+      "scenario": "cancel-before",
+      "status": "PASS",
+      "exitCode": 0,
+      "sessionId": "01a0942b-0602-722a-bf02-abd3cfad8cde",
+      "outerToolCalls": [
+        "eval"
+      ],
+      "innerCalls": [
+        "read",
+        "edit",
+        "bash"
+      ],
+      "mutationApplied": true,
+      "commandStarts": 0,
+      "commandFinished": false,
+      "commandFinishedAfterOriginalDeadline": null,
+      "approvals": [
+        {
+          "kind": "approval_requested",
+          "type": "tool_approval_requested",
+          "sessionId": "01a0942b-0602-722a-bf02-abd3cfad8cde",
+          "toolName": "bash",
+          "toolCallId": "js-bash-d9efb943-c811-4b0f-91b8-33016833db62",
+          "approvalMode": "yolo"
+        },
+        {
+          "kind": "approval_resolved",
+          "type": "tool_approval_resolved",
+          "sessionId": "01a0942b-0602-722a-bf02-abd3cfad8cde",
+          "toolName": "bash",
+          "toolCallId": "js-bash-d9efb943-c811-4b0f-91b8-33016833db62",
+          "approved": false,
+          "reason": "denied by user"
+        }
+      ],
+      "uiActions": [
+        {
+          "choice": "Abort",
+          "commandHadNotStarted": true,
+          "editAlreadyApplied": true
+        }
+      ],
+      "aborted": true
+    },
+    "final-cancel-running": {
+      "scenario": "cancel-running",
+      "status": "PASS",
+      "exitCode": 0,
+      "sessionId": "01a0942d-492f-7787-ad0f-747393a3efa5",
+      "outerToolCalls": [
+        "eval"
+      ],
+      "innerCalls": [
+        "read",
+        "edit",
+        "bash"
+      ],
+      "mutationApplied": true,
+      "commandStarts": 1,
+      "commandFinished": false,
+      "commandFinishedAfterOriginalDeadline": false,
+      "approvals": [],
+      "uiActions": [],
+      "aborted": true
+    },
+    "final-timeout": {
+      "scenario": "timeout",
+      "status": "PASS",
+      "exitCode": 0,
+      "sessionId": "01a0942d-4946-7511-9a7c-3557640f0ffa",
+      "outerToolCalls": [
+        "eval"
+      ],
+      "innerCalls": [
+        "read",
+        "edit",
+        "bash"
+      ],
+      "mutationApplied": true,
+      "commandStarts": 1,
+      "commandFinished": false,
+      "commandFinishedAfterOriginalDeadline": false,
+      "approvals": [],
+      "uiActions": [],
+      "aborted": false
+    }
+  },
+  "behaviorSettingsNote": "Write/edit failure/exit-7/approval/deny/intercept/cancel-before checks used initial auto-background setting with independent approval overlays; after changing bash.autoBackground.enabled=false, success comparisons, timeout and running-cancellation were rerun. No approval settings changed globally.",
+  "failuresAndCorrections": [
+    {
+      "run": "command-failure",
+      "driverStatus": "FAIL",
+      "reason": "Initial observer assertion trusted tool_result.isError; it was false despite real exit 7.",
+      "observedCommandExit": 7,
+      "observedBridgeHasError": true,
+      "finalSessionToolResultIsError": true,
+      "action": "Preserved original output, reported host event inconsistency through report_issue, checked exit code plus bridge/session error state; command-failure-v2 PASS. Host core was not patched."
+    },
+    {
+      "run": "timeout",
+      "driverStatus": "FAIL",
+      "reason": "Default bash auto-background returned running job handle despite async:false; timeout arrived in later automatic message. The model did not claim validation success.",
+      "action": "Configured bash.autoBackground.enabled=false at user scope for synchronous fusion; final-timeout PASS, final-cancel-running PASS. Explicit async remains available."
+    }
+  ],
+  "adapterRegressionChecks": [
+    {
+      "command": "bun run typecheck",
+      "exitCode": 0
+    },
+    {
+      "command": "bun test",
+      "exitCode": 0,
+      "pass": 36,
+      "fail": 0
+    },
+    {
+      "command": "bun run smoke",
+      "exitCode": 0,
+      "scope": "pinned npm real-host off/on load and EOF shutdown"
+    }
+  ],
+  "limitations": [
+    "sol-omp actionFusion remains false; no then_run schema, extension-side cross-tool dispatch or special fusion queue.",
+    "Code Mode routes model work through eval; it does not guarantee the model will always choose a single cell or correctly guard every result.",
+    "Dependent operations must await sequentially and check hasError; no Promise.all for edit then validate.",
+    "Safety claims cover tool.* bridge, not raw Bun/fs/process APIs.",
+    "Original yolo approval mode retained; permission checks were tested with explicit per-run prompt/deny policies.",
+    "Existing three high dependency security advisories remain unresolved; audit was not re-run or relabeled PASS.",
+    "Token/turn reduction was observed, but aggregate catalog cost increased 12.682%; no cost-saving guarantee.",
+    "No upstream Pi or OMP core/node_modules modifications; no new permanent tests."
+  ],
+  "capabilityEvidence": {
+    "actualHost": {
+      "exitCode": 0,
+      "probeCount": 1,
+      "probe": {
+        "hostVersion": "18.1.18",
+        "agentDir": "/home/carter003/.omp/agent",
+        "extensionMethods": [
+          "appendEntry",
+          "arktype",
+          "exec",
+          "getActiveTools",
+          "getAllTools",
+          "getCommands",
+          "getFlag",
+          "getServiceTiers",
+          "getSessionName",
+          "getThinkingLevel",
+          "on",
+          "registerAssistantThinkingRenderer",
+          "registerCommand",
+          "registerComposerShape",
+          "registerFileDeleteFallback",
+          "registerFileWriteFallback",
+          "registerFlag",
+          "registerMessageRenderer",
+          "registerProvider",
+          "registerShortcut",
+          "registerTool",
+          "sendMessage",
+          "sendUserMessage",
+          "setActiveTools",
+          "setLabel",
+          "setModel",
+          "setServiceTier",
+          "setSessionName",
+          "setThinkingLevel",
+          "unregisterProvider"
+        ],
+        "contextMethods": [
+          "abort",
+          "clearTimer",
+          "compact",
+          "getAsyncJobSnapshot",
+          "getContextUsage",
+          "getSystemPrompt",
+          "hasPendingMessages",
+          "isIdle",
+          "isProjectTrusted",
+          "setInterval",
+          "setTimeout",
+          "shutdown"
+        ],
+        "sdkToolExecutionExportNames": [
+          "AskTool",
+          "AstEditTool",
+          "AstGrepTool",
+          "BACKGROUND_TAN_DISPATCH_MESSAGE_TYPE",
+          "BUILTIN_TOOLS",
+          "BashExecutionComponent",
+          "BashTool",
+          "CheckpointTool",
+          "ContextNotesTool",
+          "CustomToolAdapter",
+          "CustomToolLoader",
+          "DebugTool",
+          "ESSENTIAL_BUILTIN_TOOL_NAMES",
+          "EditTool",
+          "EvalTool",
+          "ExtensionToolWrapper",
+          "GithubTool",
+          "GlobTool",
+          "GoalTool",
+          "GrepTool",
+          "HIDDEN_TOOLS",
+          "HubTool",
+          "LearnTool",
+          "LspTool",
+          "ManageSkillTool",
+          "MemoryEditTool",
+          "MemoryRecallTool",
+          "MemoryReflectTool",
+          "MemoryRetainTool",
+          "NewContextTool",
+          "READ_ONLY_TOOL_NAMES",
+          "ReadTool",
+          "ReadToolGroupComponent",
+          "RegisteredToolAdapter",
+          "RewindTool",
+          "SecurityScanTool",
+          "TaskTool",
+          "ThinkTool",
+          "TodoTool",
+          "ToolExecutionComponent",
+          "VIBE_TOOL_NAMES",
+          "VibeKillTool",
+          "VibeListTool",
+          "VibeSendTool",
+          "VibeSpawnTool",
+          "VibeWaitTool",
+          "WebSearchTool",
+          "WriteTool",
+          "XDEV_TRANSPORT_TOOLS",
+          "YieldTool",
+          "askToolRenderer",
+          "astEditToolRenderer",
+          "astGrepToolRenderer",
+          "bashExecutionToText",
+          "bashToolRenderer",
+          "buildGoalToolResponse",
+          "computerApproval",
+          "createMCPProxyTools",
+          "createTools",
+          "createVibeToolRenderer",
+          "createVibeTools",
+          "customToolToDefinition",
+          "debugToolRenderer",
+          "defaultLoadModeForToolName",
+          "defineRpcClientTool",
+          "discoverAndLoadCustomTools",
+          "discoverCustomToolPaths",
+          "dispatchReportIssueDevice",
+          "dispatchResolutionDevice",
+          "dispatchXdevTool",
+          "editToolRenderer",
+          "evalToolRenderer",
+          "getEvalToolDescription",
+          "getImageGenTools",
+          "getImageGenToolsWithRegistry",
+          "getSearchTools",
+          "globToolRenderer",
+          "goalToolRenderer",
+          "grepToolRenderer",
+          "hubToolRenderer",
+          "imageGenTool",
+          "isPreviewResolutionToolCall",
+          "isProposeToolCall",
+          "isReportIssueToolCall",
+          "isToolCallEventType",
+          "listXdevTools",
+          "loadCustomTools",
+          "pythonExecutionToText",
+          "readToolRenderer",
+          "resolveDispatchDetails",
+          "resolveEditToolDescription",
+          "resolveMountedXdevExecutable",
+          "resolveMountedXdevTool",
+          "resolveXdevTool",
+          "thinkToolRenderer",
+          "todoToolRenderer",
+          "toolRenderName",
+          "ttsTool",
+          "webSearchCustomTool",
+          "wrapRegisteredTool",
+          "wrapRegisteredTools",
+          "writeDeviceDispatch",
+          "writeToolRenderer"
+        ],
+        "tools": [
+          {
+            "name": "bash",
+            "source": {
+              "path": "<builtin:bash>",
+              "source": "builtin",
+              "scope": "temporary",
+              "origin": "top-level"
+            }
+          },
+          {
+            "name": "edit",
+            "source": {
+              "path": "<builtin:edit>",
+              "source": "builtin",
+              "scope": "temporary",
+              "origin": "top-level"
+            }
+          },
+          {
+            "name": "write",
+            "source": {
+              "path": "<builtin:write>",
+              "source": "builtin",
+              "scope": "temporary",
+              "origin": "top-level"
+            }
+          },
+          {
+            "name": "obs_recall",
+            "source": {
+              "path": "/home/carter003/.omp/plugins/node_modules/sol-omp/src/index.ts",
+              "source": "extension",
+              "scope": "temporary",
+              "origin": "top-level"
+            }
+          }
+        ]
+      }
+    },
+    "latestRelease": "18.1.18",
+    "sources": [
+      "https://registry.npmjs.org/-/package/@oh-my-pi%2Fpi-coding-agent/dist-tags",
+      "https://github.com/can1357/oh-my-pi/releases/tag/v18.1.18",
+      "https://github.com/can1357/oh-my-pi/blob/v18.1.18/packages/coding-agent/src/eval/js/tool-bridge.ts",
+      "https://github.com/can1357/oh-my-pi/blob/v18.1.18/packages/coding-agent/src/extensibility/extensions/wrapper.ts"
+    ]
+  },
+  "rawEvidence": {
+    "privateTemporaryDirectory": "/tmp/sol-omp-action-fusion-ijvftgcm",
+    "files": "<run>/prompt.txt, stdout.jsonl, stderr.jsonl, summary.json, messages.json; <run>/sessions/",
+    "retention": "Temporary scripts removed after verification; logs/session evidence retained but /tmp may be garbage-collected."
+  }
+}

@@ -24,6 +24,20 @@
 
 ObservationPack 可独立开发和测试。只有接通满足上述条件的公开宿主能力后，才能加入融合实现，并真实验证：允许 edit / 禁止 bash；另一扩展阻断 bash；编辑失败；命令非零；取消；禁止重复修改。当前这些 Action Fusion 运行时场景全是 **NOT_RUN**，不能写 PASS。
 
+## 本轮复核与用户选择
+
+2026-09-12 再次检查当前安装包、实际独立二进制及官方发布源。npm `latest` 和 GitHub 最新 release 均为 `18.1.18`，没有已发布的受保护任意工具派发升级可用。真实客户端探针正常退出（exit 0），确认 `ExtensionAPI`/普通事件 `ExtensionContext` 不提供绑定当前会话的任意工具执行方法。
+
+补充核对了先前未展开的公开 SDK 导出：
+
+- `dispatchXdevTool`、`ExtensionToolWrapper`、`EvalTool` 等确实存在于注入的 `api.pi` 导出中；**导出构造器/函数不等于拿到了当前会话的实例、registry、runner 或执行 context**。所需的 `ToolSession`/`XdevState` 不在扩展 API 中。
+- 从覆盖后的 write 使用同名委托写入 `xd://bash` 不是通用安全替代：原生 WriteTool 会设置 `xdevApproved:true`，不能假定此次内部调用经过了原本基于 bash 参数的外层审批。没有用这一途径执行命令。
+- 原生 eval 的 `callSessionTool(name,args,{session,...})` 会从当前会话的受保护工具 registry 取工具、传递当前 context 和取消信号；扩展无法获得该绑定 session。模型调用原生 eval 时则由宿主完成绑定，`tool.*` 可以保留内层工具审批及 `tool_call`。
+
+用户明确选择 **OMP 原生 eval 顺序融合**，而非放开扩展权限或修改 core。本轮配置 `providers.openai-codex.codeMode=on`、`bash.autoBackground.enabled=false`，保留 `actionFusion=false`。原生方案的成功/失败/审批/取消及三对对照已实际执行，见 [验证报告](validation-report.md)；不能将其改记为本文件的 sol-omp Action Fusion PASS。
+
+依据：[npm dist-tags](https://registry.npmjs.org/-/package/@oh-my-pi%2Fpi-coding-agent/dist-tags)、[v18.1.18 release](https://github.com/can1357/oh-my-pi/releases/tag/v18.1.18)、[原生 eval bridge](https://github.com/can1357/oh-my-pi/blob/v18.1.18/packages/coding-agent/src/eval/js/tool-bridge.ts)。真实运行的公开导出清单保存在 [原生融合结构化证据](native-fusion-comparison-2026-09-12.json) 的 `capabilityEvidence`。
+
 ## 固定来源
 
 - [ExtensionContext / ExtensionAPI](https://github.com/can1357/oh-my-pi/blob/00085d4e7dfdcfbf302c122fa2682b410a0f43d1/packages/coding-agent/src/extensibility/extensions/types.ts)

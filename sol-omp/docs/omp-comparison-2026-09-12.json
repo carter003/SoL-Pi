@@ -1,0 +1,503 @@
+{
+  "date": "2026-09-12",
+  "source": {
+    "root": "/home/carter003/project/sol-omp",
+    "adapter": "/home/carter003/project/sol-omp/sol-omp",
+    "branch": "main",
+    "commit": "08236ca26f83775e961167d9cefbc38d75027454",
+    "initialState": "?? sol-omp/bun.lock; otherwise clean",
+    "sourceRuntimeChanges": false
+  },
+  "environment": {
+    "os": "Linux WSL2 x86_64",
+    "node": "24.15.0",
+    "npm": "12.0.2",
+    "bun": "1.3.14",
+    "ompNpm": "18.1.18",
+    "ompBinary": "18.1.18",
+    "binary": "/home/carter003/project/erp-1123/scripts/herdr-tps/.runtime/omp",
+    "model": "openai-codex/gpt-6-astra",
+    "thinking": "high"
+  },
+  "installation": {
+    "scope": "user (default profile)",
+    "link": "/home/carter003/.omp/plugins/node_modules/sol-omp",
+    "target": "/home/carter003/project/sol-omp/sol-omp",
+    "configPath": "/home/carter003/.omp/agent/sol-omp.json",
+    "config": {
+      "version": 1,
+      "observationPack": true,
+      "actionFusion": false
+    },
+    "existingPluginPreserved": "dummypi",
+    "hostAndAuthenticationUnmodified": true
+  },
+  "checks": [
+    {
+      "command": "bun install --frozen-lockfile --ignore-scripts",
+      "exitCode": 0,
+      "result": "153 installs across 184 packages; no changes"
+    },
+    {
+      "command": "bun run typecheck",
+      "exitCode": 0
+    },
+    {
+      "command": "bun test",
+      "exitCode": 0,
+      "pass": 36,
+      "fail": 0
+    },
+    {
+      "command": "bun run smoke",
+      "exitCode": 0,
+      "scope": "pinned npm OMP; off/on isolated real-host load and graceful EOF"
+    },
+    {
+      "command": "omp plugin link /home/carter003/project/sol-omp/sol-omp --scope user",
+      "exitCode": 0
+    },
+    {
+      "command": "omp plugin list --json",
+      "exitCode": 0,
+      "enabled": [
+        "dummypi@0.0.1",
+        "sol-omp@0.1.0-dev.0"
+      ]
+    },
+    {
+      "command": "bun audit --audit-level=high",
+      "exitCode": 1,
+      "highAdvisories": 3,
+      "decision": "User explicitly accepted risk and authorized synthetic text, read-only comparison; vulnerabilities NOT fixed"
+    },
+    {
+      "command": "omp config get model --json",
+      "exitCode": 1,
+      "scope": "discovery; wrong setting name; corrected with modelRoles"
+    },
+    {
+      "command": "omp config get modelRoles --json",
+      "exitCode": 0
+    }
+  ],
+  "auditAdvisories": [
+    "https://github.com/advisories/GHSA-xcpc-8h2w-3j85",
+    "https://github.com/advisories/GHSA-f88m-g3jw-g9cj",
+    "https://github.com/advisories/GHSA-rgj7-g3m4-5g8c"
+  ],
+  "method": {
+    "fixture": "tests/fixtures/model-observation.ts",
+    "bytes": 35004,
+    "sha256": "3eafc70efdb4a9d27a171e89510dd21f570f9199c72e4e0d105dec06648b48a9",
+    "pair": "ObservationPack off/on; obs_recall and all other discovered extensions retained; not an extension-free native-OMP baseline",
+    "retentionPhase": "1 observation then 3 ticks; independent user prompts; 8 assistant messages and 4 tool calls per arm",
+    "recoveryPhase": "off: read marker from current context without tools; on: actual obs_recall from offset 0 through EOF (3 pages)",
+    "samplePairs": 1,
+    "claims": "Local context projection bytes and OMP-reported usage; cost is catalog estimate, not provider bill. No latency/success-rate statistics, task corpus or general cost guarantee.",
+    "normalApprovalPreserved": true,
+    "customSystemPrompt": false,
+    "credentialsCopied": false
+  },
+  "metrics": {
+    "observationBytesPerLateProjection": {
+      "off": 35004,
+      "on": 1437,
+      "changePercent": -95.895
+    },
+    "observationBytesAcrossSevenProjections": {
+      "off": 245028,
+      "on": 77193,
+      "changePercent": -68.496
+    },
+    "retentionPhaseTokens": {
+      "off": 222941,
+      "on": 165807,
+      "changePercent": -25.627
+    },
+    "retentionPhaseCatalogCost": {
+      "off": 0.503746,
+      "on": 0.450886,
+      "changePercent": -10.493
+    },
+    "retentionPhaseModelMessages": {
+      "off": 8,
+      "on": 8,
+      "changePercent": 0.0
+    },
+    "withRecoveryTokens": {
+      "off": 252526,
+      "on": 262675,
+      "changePercent": 4.019
+    },
+    "withRecoveryCatalogCost": {
+      "off": 0.535276,
+      "on": 0.733494,
+      "changePercent": 37.031
+    },
+    "withRecoveryToolCalls": {
+      "off": 4,
+      "on": 7,
+      "changePercent": 75.0
+    }
+  },
+  "baseline": {
+    "sessionId": "01a0940a-bbea-7345-93dd-4143ec1c17d5",
+    "retentionStats": {
+      "sessionFile": "/tmp/sol-omp-validation-xfnb8t50/sessions/2026-09-12T05-15-26-570Z_01a0940a-bbea-7345-93dd-4143ec1c17d5.jsonl",
+      "sessionId": "01a0940a-bbea-7345-93dd-4143ec1c17d5",
+      "userMessages": 4,
+      "assistantMessages": 8,
+      "toolCalls": 4,
+      "toolResults": 4,
+      "totalMessages": 16,
+      "tokens": {
+        "input": 30569,
+        "output": 116,
+        "reasoning": 0,
+        "cacheRead": 192256,
+        "cacheWrite": 0,
+        "total": 222941
+      },
+      "cost": 0.503746,
+      "premiumRequests": 0,
+      "contextUsage": {
+        "tokens": 29536,
+        "contextWindow": 272000,
+        "percent": 10.858823529411765
+      }
+    },
+    "finalStats": {
+      "sessionFile": "/tmp/sol-omp-validation-xfnb8t50/sessions/2026-09-12T05-15-26-570Z_01a0940a-bbea-7345-93dd-4143ec1c17d5.jsonl",
+      "sessionId": "01a0940a-bbea-7345-93dd-4143ec1c17d5",
+      "userMessages": 5,
+      "assistantMessages": 9,
+      "toolCalls": 4,
+      "toolResults": 4,
+      "totalMessages": 18,
+      "tokens": {
+        "input": 30698,
+        "output": 132,
+        "reasoning": 0,
+        "cacheRead": 221696,
+        "cacheWrite": 0,
+        "total": 252526
+      },
+      "cost": 0.535276,
+      "premiumRequests": 0,
+      "contextUsage": {
+        "tokens": 29569,
+        "contextWindow": 272000,
+        "percent": 10.870955882352941
+      }
+    },
+    "projections": [
+      {
+        "toolCallId": "call_kGNmAgQvImuZQYmjr6bu9D5E|fc_04dec7d02af32aef016aa4dff2828c87d0b92c59fd8ad54dee",
+        "bytes": 35004,
+        "projection": "full",
+        "id": null
+      },
+      {
+        "toolCallId": "call_kGNmAgQvImuZQYmjr6bu9D5E|fc_04dec7d02af32aef016aa4dff2828c87d0b92c59fd8ad54dee",
+        "bytes": 35004,
+        "projection": "full",
+        "id": null
+      },
+      {
+        "toolCallId": "call_kGNmAgQvImuZQYmjr6bu9D5E|fc_04dec7d02af32aef016aa4dff2828c87d0b92c59fd8ad54dee",
+        "bytes": 35004,
+        "projection": "full",
+        "id": null
+      },
+      {
+        "toolCallId": "call_kGNmAgQvImuZQYmjr6bu9D5E|fc_04dec7d02af32aef016aa4dff2828c87d0b92c59fd8ad54dee",
+        "bytes": 35004,
+        "projection": "full",
+        "id": null
+      },
+      {
+        "toolCallId": "call_kGNmAgQvImuZQYmjr6bu9D5E|fc_04dec7d02af32aef016aa4dff2828c87d0b92c59fd8ad54dee",
+        "bytes": 35004,
+        "projection": "full",
+        "id": null
+      },
+      {
+        "toolCallId": "call_kGNmAgQvImuZQYmjr6bu9D5E|fc_04dec7d02af32aef016aa4dff2828c87d0b92c59fd8ad54dee",
+        "bytes": 35004,
+        "projection": "full",
+        "id": null
+      },
+      {
+        "toolCallId": "call_kGNmAgQvImuZQYmjr6bu9D5E|fc_04dec7d02af32aef016aa4dff2828c87d0b92c59fd8ad54dee",
+        "bytes": 35004,
+        "projection": "full",
+        "id": null
+      }
+    ]
+  },
+  "enabled": {
+    "sessionId": "01a0940a-fd82-77df-920c-b26367061cdd",
+    "retentionStats": {
+      "sessionFile": "/tmp/sol-omp-validation-xfnb8t50/sessions/2026-09-12T05-15-43-362Z_01a0940a-fd82-77df-920c-b26367061cdd.jsonl",
+      "sessionId": "01a0940a-fd82-77df-920c-b26367061cdd",
+      "userMessages": 4,
+      "assistantMessages": 8,
+      "toolCalls": 4,
+      "toolResults": 4,
+      "totalMessages": 16,
+      "tokens": {
+        "input": 31033,
+        "output": 118,
+        "reasoning": 0,
+        "cacheRead": 134656,
+        "cacheWrite": 0,
+        "total": 165807
+      },
+      "cost": 0.450886,
+      "premiumRequests": 0,
+      "contextUsage": {
+        "tokens": 18108,
+        "contextWindow": 272000,
+        "percent": 6.657352941176471
+      }
+    },
+    "finalStats": {
+      "sessionFile": "/tmp/sol-omp-validation-xfnb8t50/sessions/2026-09-12T05-15-43-362Z_01a0940a-fd82-77df-920c-b26367061cdd.jsonl",
+      "sessionId": "01a0940a-fd82-77df-920c-b26367061cdd",
+      "userMessages": 5,
+      "assistantMessages": 12,
+      "toolCalls": 7,
+      "toolResults": 7,
+      "totalMessages": 24,
+      "tokens": {
+        "input": 50032,
+        "output": 419,
+        "reasoning": 0,
+        "cacheRead": 212224,
+        "cacheWrite": 0,
+        "total": 262675
+      },
+      "cost": 0.733494,
+      "premiumRequests": 0,
+      "contextUsage": {
+        "tokens": 25447,
+        "contextWindow": 272000,
+        "percent": 9.355514705882353
+      }
+    },
+    "projections": [
+      {
+        "toolCallId": "call_nZpKYNKyX7RUW79G9gmVZNL6|fc_0a8c86b45aca6bc7016aa4e004520087d0887ab5831cc9e59a",
+        "bytes": 35004,
+        "projection": "full",
+        "id": null
+      },
+      {
+        "toolCallId": "call_nZpKYNKyX7RUW79G9gmVZNL6|fc_0a8c86b45aca6bc7016aa4e004520087d0887ab5831cc9e59a",
+        "bytes": 35004,
+        "projection": "full",
+        "id": null
+      },
+      {
+        "toolCallId": "call_nZpKYNKyX7RUW79G9gmVZNL6|fc_0a8c86b45aca6bc7016aa4e004520087d0887ab5831cc9e59a",
+        "bytes": 1437,
+        "projection": "placeholder",
+        "id": "obs_2cffaa0d75ca2ce45fb8c8d7"
+      },
+      {
+        "toolCallId": "call_nZpKYNKyX7RUW79G9gmVZNL6|fc_0a8c86b45aca6bc7016aa4e004520087d0887ab5831cc9e59a",
+        "bytes": 1437,
+        "projection": "placeholder",
+        "id": "obs_2cffaa0d75ca2ce45fb8c8d7"
+      },
+      {
+        "toolCallId": "call_nZpKYNKyX7RUW79G9gmVZNL6|fc_0a8c86b45aca6bc7016aa4e004520087d0887ab5831cc9e59a",
+        "bytes": 1437,
+        "projection": "placeholder",
+        "id": "obs_2cffaa0d75ca2ce45fb8c8d7"
+      },
+      {
+        "toolCallId": "call_nZpKYNKyX7RUW79G9gmVZNL6|fc_0a8c86b45aca6bc7016aa4e004520087d0887ab5831cc9e59a",
+        "bytes": 1437,
+        "projection": "placeholder",
+        "id": "obs_2cffaa0d75ca2ce45fb8c8d7"
+      },
+      {
+        "toolCallId": "call_nZpKYNKyX7RUW79G9gmVZNL6|fc_0a8c86b45aca6bc7016aa4e004520087d0887ab5831cc9e59a",
+        "bytes": 1437,
+        "projection": "placeholder",
+        "id": "obs_2cffaa0d75ca2ce45fb8c8d7"
+      }
+    ],
+    "observationId": "obs_2cffaa0d75ca2ce45fb8c8d7",
+    "recall": {
+      "pages": 3,
+      "bytes": 35004,
+      "offsets": [
+        0,
+        15872,
+        31744
+      ],
+      "nextOffsets": [
+        15872,
+        31744,
+        35004
+      ],
+      "sourceSHA256": "3eafc70efdb4a9d27a171e89510dd21f570f9199c72e4e0d105dec06648b48a9"
+    },
+    "originalSessionPreserved": true,
+    "archiveMode": "0600",
+    "objectsDirMode": "0700"
+  },
+  "restart": {
+    "sessionId": "01a0940a-fd82-77df-920c-b26367061cdd",
+    "enabledRecall": {
+      "pages": 3,
+      "bytes": 35004,
+      "offsets": [
+        0,
+        15872,
+        31744
+      ],
+      "nextOffsets": [
+        15872,
+        31744,
+        35004
+      ],
+      "sourceSHA256": "3eafc70efdb4a9d27a171e89510dd21f570f9199c72e4e0d105dec06648b48a9"
+    },
+    "disabledRecall": {
+      "pages": 3,
+      "bytes": 35004,
+      "offsets": [
+        0,
+        15872,
+        31744
+      ],
+      "nextOffsets": [
+        15872,
+        31744,
+        35004
+      ],
+      "sourceSHA256": "3eafc70efdb4a9d27a171e89510dd21f570f9199c72e4e0d105dec06648b48a9"
+    },
+    "newObservationFullProjectionsWhenDisabled": 5
+  },
+  "nativeRead": {
+    "defaultRead": {
+      "status": "PASS exact received-observation recovery; middle marker absent due to host default 300-line truncation",
+      "bytes": 15051,
+      "placeholderBytes": 1418,
+      "recall": {
+        "pages": 1,
+        "bytes": 15051,
+        "offsets": [
+          0
+        ],
+        "nextOffsets": [
+          15051
+        ],
+        "sourceSHA256": "f33e7ef3c11a0024463e4ad2264b05b84296607887c4bca4b2aea55e69dbb51f"
+      }
+    },
+    "explicitRange": {
+      "selector": ":1-700:raw",
+      "status": "PASS",
+      "bytes": 35055,
+      "placeholderBytes": 1418,
+      "recall": {
+        "pages": 3,
+        "bytes": 35055,
+        "offsets": [
+          0,
+          15872,
+          31744
+        ],
+        "nextOffsets": [
+          15872,
+          31744,
+          35055
+        ],
+        "sourceSHA256": "76f6595911d5a78023fa26f160d3b30a2e9bd98d02eb89a48cede5e3692a0f5c"
+      },
+      "markerRecovered": true
+    }
+  },
+  "runtimeChecks": {
+    "installed": {
+      "status": "PASS",
+      "modelErrors": 0,
+      "toolErrors": 0,
+      "exitCode": 0,
+      "sessionId": "01a09409-33c7-71b9-9c78-3d603f2d6906"
+    },
+    "baseline": {
+      "status": "PASS",
+      "modelErrors": 0,
+      "toolErrors": 0,
+      "exitCode": 0,
+      "sessionId": "01a0940a-bbea-7345-93dd-4143ec1c17d5"
+    },
+    "enabled": {
+      "status": "PASS",
+      "modelErrors": 0,
+      "toolErrors": 0,
+      "exitCode": 0,
+      "sessionId": "01a0940a-fd82-77df-920c-b26367061cdd"
+    },
+    "resumed": {
+      "status": "PASS",
+      "modelErrors": 0,
+      "toolErrors": 0,
+      "exitCode": 0,
+      "sessionId": "01a0940a-fd82-77df-920c-b26367061cdd"
+    },
+    "disabled-resume": {
+      "status": "PASS",
+      "modelErrors": 0,
+      "toolErrors": 0,
+      "exitCode": 0,
+      "sessionId": "01a0940a-fd82-77df-920c-b26367061cdd"
+    },
+    "native": {
+      "status": "PASS",
+      "modelErrors": 0,
+      "toolErrors": 0,
+      "exitCode": 0,
+      "sessionId": "01a0940e-391a-7162-86c5-3872c27b45d4"
+    },
+    "native-range": {
+      "status": "PASS",
+      "modelErrors": 0,
+      "toolErrors": 0,
+      "exitCode": 0,
+      "sessionId": "01a0940f-9717-71dd-b03c-02abef315a10"
+    }
+  },
+  "mechanisms": {
+    "observationPack": "PASS within exercised cases",
+    "actionFusion": "BLOCKED; false; original edit/write retained",
+    "evidencePreservingReducer": "NOT_IMPLEMENTED / NOT_RUN",
+    "onlineContextCompact": "NOT_IMPLEMENTED / NOT_RUN"
+  },
+  "rawEvidence": {
+    "directory": "/tmp/sol-omp-validation-xfnb8t50",
+    "private": true,
+    "lifetime": "temporary directory; may be garbage-collected",
+    "files": [
+      "<run>/stdout.jsonl",
+      "<run>/stderr.jsonl",
+      "<run>/summary.json",
+      "<run>/messages.json",
+      "sessions/*.jsonl",
+      "sessions/sol-omp/<session-id>/observation-pack/objects/*.txt"
+    ]
+  },
+  "limitations": [
+    "Dependency security audit FAIL with user-accepted risk.",
+    "Only current default profile installation verified; other profiles not configured.",
+    "No OMP core, original SoL-Pi source, dependency-lock or auth modifications.",
+    "No permanent source tests added; existing fixtures and temporary RPC driver exercised real model and host."
+  ]
+}

@@ -2,27 +2,29 @@
 
 在独立 `sol-omp/` 中将 NVIDIA SoL-Pi 的 ObservationPack 接入 OMP，不修改原版 SoL-Pi 或 OMP core。用户任务原文见 [实施计划](docs/implementation-plan-mvp.md)，实际结果见 [验证报告](docs/validation-report.md)。
 
-**功能边界：** 已实现观察归档、延迟占位、分页恢复和严格用户级配置。Action Fusion 尚未实现，保持关闭；Reducer 与 Online Context Compact 不在本次范围内。真实模型侧链路与真实同 session 重启恢复仍待验证，不能把单元测试和加载检查说成完整 E2E。
+**功能边界：** 已实现观察归档、延迟占位、分页恢复和严格用户级配置。2026-09-12 已在 Linux/WSL2、OMP 18.1.18 独立二进制、真实 `openai-codex/gpt-6-astra` 会话中验证打包、逐字节恢复、同 session 进程重启及关闭打包后恢复旧引用。Action Fusion 尚未实现，保持关闭；Reducer 与 Online Context Compact 未移植。这不等于上游四项机制全部通过。
 
 ## 固定环境
 
 - SoL-Pi 源码：`d7ecfc089944f0d04b80122a0a9a6ca0d786f3d0`。
-- OMP：本地 npm 包 `@oh-my-pi/pi-coding-agent@18.1.18`；源码 tag 对应 `00085d4e7dfdcfbf302c122fa2682b410a0f43d1`。
+- OMP：本地 npm 包及用户实际独立二进制均为 `18.1.18`；npm 基线源码 tag 对应 `00085d4e7dfdcfbf302c122fa2682b410a0f43d1`。
 - Bun：`1.3.14`。CI 使用 GitHub Actions `ubuntu-22.04` Linux runner；另在 Node `22.16.0` 运行 36 项单元测试。
 - 支持声明仅限验证报告中实际通过的范围，不泛称支持 `>=18.x` 或 Windows。
 
-`upstream.lock.json` 是来源和验证基线，不是依赖解析锁。本次 CI 实际执行 `bun install`，生成的 `bun.lock` 保存在 Actions artifact，尚未提交仓库；传递依赖还未达到 frozen-lockfile 复现。再次安装后保留生成的锁并复跑验证，不手工编造依赖锁。
+`upstream.lock.json` 保留初次实现的来源和 CI 验证基线，不是依赖解析锁或当前安装报告。2026-09-12 本地现有、未提交的 `bun.lock` 已通过 `bun install --frozen-lockfile --ignore-scripts`，没有改写该锁；新的 clone 仍需自行取得依赖锁。当前安装和实测数据见 [验证报告](docs/validation-report.md)。
 
 ## 安装与检查
 
 ```bash
 cd SoL-Pi/sol-omp
 bun --version             # 本次验证版本为 1.3.14
-bun install
+bun install --frozen-lockfile --ignore-scripts  # 需要已有 bun.lock
 bun run typecheck
 bun test
 bun run smoke
 ```
+
+本次 `bun audit --audit-level=high` **FAIL**：固定 OMP 依赖链中 `adm-zip`、`sharp` 共 3 项 high 告警。用户明确选择保留风险，仅继续合成文本的只读测试；没有升级依赖或宣称漏洞已修复。类型检查/运行测试通过不代替安全审计通过。
 
 检查失败时保留真实输出，不把未运行阶段标记为 PASS。只有 Node 的环境可运行下面的**单元测试**，但它不代替完整类型检查或真实宿主验证：
 
@@ -36,7 +38,14 @@ node --experimental-strip-types --test tests/*.test.ts
 
 ## 使用和配置
 
-正常使用继续由 OMP 管理模型和认证。安装后，在目标项目目录显式加载：
+正常使用继续由 OMP 管理模型和认证。对于已验证的 OMP 18.1.18，可按选定范围持久链接本地源码；本次用户选择了 user 范围：
+
+```bash
+omp plugin link /absolute/path/to/SoL-Pi/sol-omp --scope user
+omp plugin list --json
+```
+
+链接后新启动的 `omp` 自动加载，原有会话须重启；不要再重复传扩展入口。保留源码目录，移动目录会使链接失效。只做临时加载、不建立持久链接时：
 
 ```bash
 SOL_OMP_ROOT=/absolute/path/to/SoL-Pi/sol-omp
@@ -79,14 +88,12 @@ bun "$SOL_OMP_ROOT/node_modules/.bin/omp" \
 
 使用占位中真实 id 调用 `obs_recall`，从 `offset: 0` 开始，跟随返回的 `next_offset`，直到 `eof: true`。偏移为 UTF-8 字节，不是字符。每页含头部最多 16 KiB/400 行；非法 id、偏移或 UTF-8 字符中间偏移会拒绝。
 
-## 真实模型验证（未执行）
+## 真实模型验证与对照
 
-先在已有真实模型配置的 OMP profile 中开启打包，追加测试工具，保持正常权限设置：
+本次已执行下面的功能链路，详见 [实测报告](docs/validation-report.md) 与 [结构化数据](docs/omp-comparison-2026-09-12.json)。复现时在已有真实模型配置的 OMP profile 中开启打包，追加测试工具，保持正常权限设置：
 
 ```bash
-bun "$SOL_OMP_ROOT/node_modules/.bin/omp" \
-  --extension "$SOL_OMP_ROOT/src/index.ts" \
-  --extension "$SOL_OMP_ROOT/tests/fixtures/model-observation.ts"
+omp --extension "$SOL_OMP_ROOT/tests/fixtures/model-observation.ts"
 ```
 
 提示模型：
@@ -101,8 +108,40 @@ bun "$SOL_OMP_ROOT/node_modules/.bin/omp" \
 
 必须保留实际 `SOL_OMP_MODEL_CONTEXT` 中大于阈值的观察、早期全文/后期占位、真实 recall 调用及分页结果，以及会话原文未覆盖的证据。模型答对标记不等于验证通过。随后退出并恢复同一 session，验证同 id 能读取；关闭打包后重启，验证不再产生新占位而旧引用仍能恢复。测试 fixture 只提供证据，不自动宣告 MODEL_E2E=PASS。
 
+对照只切换 ObservationPack，保留 `obs_recall` 工具及原有权限/插件；这不是卸载扩展的纯原生 OMP 大规模基准。同样 8 次模型响应中，观察重放累计字节减少 68.5%，宿主报告累计 token 减少 25.6%。但追加强制完整回读后，该轮累计 token 增加 4.0%、宿主标价估算增加 37.0%；不是实付账单或普遍省钱承诺。适合旧观察较少再被完整读取的场景，按需分页，勿为了“验证使用”在每次正常任务中完整回读。
+
+## OMP 原生 eval 顺序融合（独立替代方案）
+
+用户在确认扩展接口阻塞后选择此方案。**它不是 sol-omp Action Fusion，没有 `then_run`，`sol-omp.json` 中 `actionFusion` 仍须为 false。**
+
+2026-09-12 在当前用户默认 profile 的 OMP 18.1.18 上通过宿主 CLI 配置：
+
+```bash
+omp config set providers.openai-codex.codeMode on
+omp config set bash.autoBackground.enabled false
+```
+
+`eval.autoBackground.enabled` 原本为 false，保持不变。关闭 bash 自动后台化是为了让有限时的验证在该 eval 内返回最终结果；`async:false` 本身不足以禁止宿主自动后台化。长命令会等待结束或超时，显式后台任务仍可使用。原有 `tools.approvalMode=yolo`、`tools.approval={}`、模型和认证均未改动。新会话可直接使用；已有会话建议重启。
+
+Code Mode 的宿主提示会鼓励把已知操作合入一个单元，但不会强制每次编辑自动融合。日常任务可明确要求：
+
+> 在一个 JS eval 内顺序 await 原生 tool.read → tool.edit → tool.bash。使用 read 返回的真实快照生成编辑。检查每一步返回的 hasError；错误、拒绝或取消后停止依赖步骤，不重试编辑、不回滚已成功的编辑。不要用 Promise.all 并行编辑与验证，不要用原始 fs/Bun.$ 替代原生工具。
+
+桥接工具既可能抛异常，也可能返回 `{hasError:true}`；单纯 `try/catch` 不够。如果显式选择后台验证，拿到 `details.async.state="running"` 只表示已启动，不能报告验证通过。此方案不提供 sol-omp 文件队列或执行命令前的外部改动检查。
+
+真实模型测试通过：单元内原生 edit/write 和验证、编辑失败停止 bash、命令退出 7 保留编辑、独立 bash 审批通过/拒绝、deny 策略、扩展拦截、批准前取消、运行中取消和超时。原生 `tool.*` 逐次经过当前会话的权限/拦截；这不是对原始 JS I/O 的权限保证。
+
+最终同步配置下三对受控样本：模型可见工具调用每任务 **2 → 1**，模型响应 **3 → 2**，累计 token **−33.5%**，实际 read/edit/bash 调用仍 **3 → 3**。缓存状态不同，三对合计宿主标价估算反而 **+12.7%**；不承诺普遍省钱。详见 [本轮报告](docs/validation-report.md) 和 [原生融合数据](docs/native-fusion-comparison-2026-09-12.json)。
+
+恢复本轮修改前的两项 OMP 设置：
+
+```bash
+omp config set providers.openai-codex.codeMode off
+omp config set bash.autoBackground.enabled true
+```
+
 ## 已知限制
 
-[Action Fusion 阻塞](docs/action-fusion-blocker.md)：同名 `ctx.invokeTool()` 不能从 edit 调用 bash，直接 `api.exec()` 不经过 bash 审批和 tool_call 拦截；当前没有 then_run、队列或融合运行时路径，不能把“没有执行命令”冒充权限拒绝验收。
+[Action Fusion 阻塞](docs/action-fusion-blocker.md)：同名 `ctx.invokeTool()` 不能从 edit 调用 bash，直接 `api.exec()` 不经过 bash 审批和 tool_call 拦截；适配包当前没有 then_run、队列或融合执行实现。上面的原生 eval 方案由 OMP 自己执行，不解除该扩展接口阻塞，也不能计为 sol-omp Action Fusion 验收通过。
 
-不接管 Compact，不自动中断/续跑/清理，不做原生 OMP 性能对照、上游自动同步、Marketplace 或 npm 发布。分支导航、Compact 组合、跨机器迁移和 Windows 未验证。源码映射和适配理由见 [UPSTREAM.md](UPSTREAM.md)。
+不接管 Compact，不自动中断/续跑/清理，不做大规模性能基准、上游自动同步、Marketplace 或 npm 发布。本次仅完成单一合成文本的开关对照及实际 OMP 生命周期验证；分支导航、Compact 组合、跨机器迁移和 Windows 原生环境未验证。源码映射和适配理由见 [UPSTREAM.md](UPSTREAM.md)。
