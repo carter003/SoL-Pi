@@ -16,7 +16,7 @@ async function runCli(cli: string, args: string[], cwd: string, env: NodeJS.Proc
     const child = spawn(process.execPath, [cli, ...args], {
       cwd, env, detached: true, stdio: ["pipe", "pipe", "pipe"],
     });
-    let stdout = ""; let stderr = ""; let timedOut = false; let outputLimit = false;
+    let stdout = ""; let stderr = ""; let timedOut = false; let outputLimit = false; let inputClosed = false;
     let force: ReturnType<typeof setTimeout> | undefined;
     function terminate() {
       if (!child.pid) return;
@@ -28,6 +28,12 @@ async function runCli(cli: string, args: string[], cwd: string, env: NodeJS.Proc
     const timer = setTimeout(() => { timedOut = true; terminate(); }, 30_000);
     const capture = (stream: "stdout" | "stderr", chunk: Buffer) => {
       if (stream === "stdout") stdout += chunk.toString("utf8"); else stderr += chunk.toString("utf8");
+      // OMP checks deferred shutdown after a command or on client EOF. Once the
+      // real session probe has reported, close RPC stdin through the normal client path.
+      if (!inputClosed && /(?:^|\n)SOL_OMP_SMOKE_PROBE=[^\n]*\n/u.test(stderr)) {
+        inputClosed = true;
+        child.stdin.end();
+      }
       if (!outputLimit && Buffer.byteLength(stdout) + Buffer.byteLength(stderr) > 2 * 1024 * 1024) {
         outputLimit = true; terminate();
       }
@@ -40,7 +46,7 @@ async function runCli(cli: string, args: string[], cwd: string, env: NodeJS.Proc
       if (timedOut || outputLimit) reject(new Error(`OMP smoke ${timedOut ? "timed out" : "exceeded output limit"}\n${stderr.slice(-6000)}`));
       else resolveResult({ code, stdout, stderr });
     });
-    // Keep RPC stdin open. The test-only session_start probe requests graceful shutdown.
+    // Keep RPC stdin open until the real session probe reports, then send EOF.
   });
 }
 
