@@ -4,6 +4,17 @@
 
 日期：2026-09-12。当前运行源码、测试、来源锁和 `bun.lock` 已纳入同一 Git 快照；用户级 OMP 链接继续指向该 checkout，不再依赖未跟踪运行文件。`bun install --frozen-lockfile --ignore-scripts` 无变更，`bun run typecheck` PASS，`bun test` 70 pass / 0 fail，`bun run smoke` PASS。`upstream.lock.json` 中当前本地文件校验值已复核。安全审计仍为 3 项 high、FAIL；本节不覆盖下方各轮历史测试计数和当时状态。
 
+### 最新提交真实 EPR E2E（DeepSeek 前台）
+
+日期：2026-09-12。监督者委派一个子代理，在运行源码 commit `de54fb99634b0bd968cfb8a9108127a2b9182c1e` 上执行唯一正式合成样本；无重试、无补样、无仓库或用户永久配置修改。前台显式启动 `opencode-go/deepseek-v4.1-FLASH`、`--thinking high`，OMP 目录规范化记录为 `opencode-go/deepseek-v4.1-flash` 且非 fallback；Reducer 保持 `opencode-go/glm-5.3-flash`。
+
+- 原生 bash 一次生成 288,054 字节、2,801 行；宿主中间截断为 51,365 字节并省略 2,301 行。公开 Artifact、预期源和 EPR 归档 SHA-256 均为 `1c1603f7289b3a8750e35c5229c4b0f49ae5ea405345877f0f1857361586de28`，逐字节一致；EPR 归档模式 `0600`。
+- 真实 Reducer 恰好一次 request / response / verified，69,242 tokens、4,592.7 ms、目录标价估算 $0.0052481；生成 1,773 字节 receipt，六条预埋 `CRITICAL_STATE` 均通过逐字引用/hash 校验。
+- 下一轮 Context 从截断观察切换为 receipt；前台 DeepSeek 在禁止工具的延迟问题中准确列出六个 key/value 和 `release_decision=NO_GO`。其答复同时错误撤回了上一轮真实看到的宿主截断描述；该额外表述不影响 Artifact/receipt 生命周期 PASS，但证明不能把单样本扩大为一般模型判断质量保证。
+- 前台 3 次调用，Reducer 1 次；合计 97,617 tokens、24.447 秒、目录标价估算 $0.009562886，低于 $1.50 停止线。脱敏证据位于 `/tmp/sol-omp-epr-recheck-L1hIoU/evidence.json`，SHA-256 `e0a6d4c856d6c9a4e8dbcb3ab2d4220f4e2fbe78ca9ac45d9a1c15aa5ae57d6a`，可能被系统清理。
+
+判定：**当前运行源码的 EPR 真实 Artifact 恢复、真实辅助模型、receipt 校验及后续 Context 投影 PASS**。仅覆盖一个合成成功路径；不覆盖业务日志、失败/取消/重启、子代理或 Compact 组合。
+
 ## Evidence-Preserving Reducer：本轮实现、启用和真实验证
 
 日期：2026-09-12。起点 commit `eea74a7d410f7d7b016413760fabff4afc2c7759`，`main`；起点仅有既存未跟踪 `sol-omp/bun.lock`。**结论：实现、指定路由配置及以下真实功能链路 PASS；本组合的总体省钱/提速未达到，安全审计仍 FAIL。**

@@ -197,7 +197,17 @@
     },
     "implementation": "public session_stop.signal; verified Context projection; no tool_result rewrite",
     "firstRead": "original retained; reduction starts on later Context",
-    "modelE2E": "PASS synthetic real opencode-go/glm-5.3-flash with openai-codex/gpt-6-astra foreground",
+    "modelE2E": "PASS on runtime commit de54fb99634b0bd968cfb8a9108127a2b9182c1e: synthetic real opencode-go/glm-5.3-flash reducer with opencode-go/deepseek-v4.1-flash high foreground",
+    "latestModelE2EEvidence": {
+      "sourceSha256": "1c1603f7289b3a8750e35c5229c4b0f49ae5ea405345877f0f1857361586de28",
+      "sourceBytes": 288054,
+      "receiptBytes": 1773,
+      "verifiedCriticalStates": 6,
+      "modelCalls": 4,
+      "estimatedCostUsd": 0.009562886,
+      "result": "PASS; single synthetic success path; no retry or resample",
+      "evidenceSha256": "e0a6d4c856d6c9a4e8dbcb3ab2d4220f4e2fbe78ca9ac45d9a1c15aa5ae57d6a"
+    },
     "publicAuth": "ModelRegistry.find + getApiKey(model, sessionId, {signal}) callback + pi-ai.completeSimple",
     "dependency": "@oh-my-pi/pi-ai@18.1.18 direct peer/dev; no dependency upgrades",
     "checks": {
