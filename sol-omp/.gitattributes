@@ -1,0 +1,2 @@
+# Keep the uploaded plan byte-for-byte, including intentional Markdown hard breaks.
+docs/implementation-plan-mvp.md whitespace=-blank-at-eol

@@ -1,0 +1,76 @@
+name: sol-omp checks
+on:
+  pull_request:
+    paths: ["sol-omp/**", ".github/workflows/sol-omp-check.yml"]
+  push:
+    branches: [main]
+    paths: ["sol-omp/**", ".github/workflows/sol-omp-check.yml"]
+permissions:
+  contents: read
+concurrency:
+  group: sol-omp-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  node-unit:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: sol-omp
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.16.0"
+      - run: node --experimental-strip-types --test tests/*.test.ts
+  omp-runtime:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: sol-omp
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+      - name: Install candidate host
+        id: install
+        run: |
+          mkdir -p smoke-results
+          set -o pipefail
+          bun --version | tee smoke-results/bun-version.log
+          if [ -f bun.lock ]; then
+            bun install --frozen-lockfile 2>&1 | tee smoke-results/install.log
+          else
+            bun install 2>&1 | tee smoke-results/install.log
+          fi
+      - name: Typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: |
+          set -o pipefail
+          bun run typecheck 2>&1 | tee smoke-results/typecheck.log
+      - name: Bun unit tests
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: |
+          set -o pipefail
+          bun test 2>&1 | tee smoke-results/tests.log
+      - name: Real OMP load and shutdown (no model)
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: |
+          set -o pipefail
+          bun run smoke 2>&1 | tee smoke-results/smoke.log
+      - name: Retain diagnostics and generated dependency lock
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sol-omp-checks-${{ github.sha }}
+          path: |
+            sol-omp/smoke-results/
+            sol-omp/bun.lock
+          if-no-files-found: ignore
+          retention-days: 7
