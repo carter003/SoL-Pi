@@ -5,15 +5,22 @@ export interface SolOmpConfig {
   readonly version: 1;
   readonly observationPack: boolean;
   readonly actionFusion: boolean;
+  readonly evidencePreservingReducer: boolean;
+  readonly evidencePreservingReducerProvider?: string;
+  readonly evidencePreservingReducerModel?: string;
+  readonly evidencePreservingReducerTimeoutMs: number;
 }
 
 export const DEFAULT_CONFIG: SolOmpConfig = Object.freeze({
   version: 1,
   observationPack: false,
   actionFusion: false,
+  evidencePreservingReducer: false,
+  evidencePreservingReducerTimeoutMs: 90000,
 });
 
-const ALLOWED_KEYS = new Set(["version", "observationPack", "actionFusion"]);
+const ALLOWED_KEYS = new Set(["version", "observationPack", "actionFusion", "evidencePreservingReducer",
+  "evidencePreservingReducerProvider", "evidencePreservingReducerModel", "evidencePreservingReducerTimeoutMs"]);
 
 export function parseConfig(text: string): SolOmpConfig {
   let value: unknown;
@@ -31,15 +38,29 @@ export function parseConfig(text: string): SolOmpConfig {
     throw new Error("sol-omp.json contains an unsupported key");
   }
   if (input.version !== 1) throw new Error("sol-omp.json requires version: 1");
-  for (const key of ["observationPack", "actionFusion"] as const) {
+  for (const key of ["observationPack", "actionFusion", "evidencePreservingReducer"] as const) {
     if (Object.hasOwn(input, key) && typeof input[key] !== "boolean") {
       throw new Error(`sol-omp.json: ${key} must be a boolean`);
     }
+  }
+  for (const key of ["evidencePreservingReducerProvider", "evidencePreservingReducerModel"] as const) {
+    if ((Object.hasOwn(input, key) || input.evidencePreservingReducer === true)
+      && (typeof input[key] !== "string" || !(input[key] as string).trim())) {
+      throw new Error(`sol-omp.json: ${key} must be an explicit non-empty route`);
+    }
+  }
+  const timeout = input.evidencePreservingReducerTimeoutMs === undefined ? 90000 : input.evidencePreservingReducerTimeoutMs;
+  if (!Number.isSafeInteger(timeout) || (timeout as number) < 1 || (timeout as number) > 90000) {
+    throw new Error("sol-omp.json: evidencePreservingReducerTimeoutMs must be an integer from 1 to 90000");
   }
   return Object.freeze({
     version: 1,
     observationPack: (input.observationPack as boolean | undefined) ?? false,
     actionFusion: (input.actionFusion as boolean | undefined) ?? false,
+    evidencePreservingReducer: input.evidencePreservingReducer === true,
+    evidencePreservingReducerTimeoutMs: timeout as number,
+    ...(input.evidencePreservingReducerProvider === undefined ? {} : { evidencePreservingReducerProvider: (input.evidencePreservingReducerProvider as string).trim() }),
+    ...(input.evidencePreservingReducerModel === undefined ? {} : { evidencePreservingReducerModel: (input.evidencePreservingReducerModel as string).trim() }),
   });
 }
 

@@ -41,7 +41,7 @@
 
 ## 有意不复制的模块
 
-Action Fusion 的受保护命令派发被 OMP 接口阻塞，未复制其 file-queue / then-run 形成不能运行的空实现。Evidence-Preserving Reducer 与 Online Context Compact 不在本次代码中。
+Action Fusion 的受保护命令派发被 OMP 接口阻塞，未复制其 file-queue / then-run 形成不能运行的空实现。Online Context Compact 未移植。Evidence-Preserving Reducer 的新增来源和适配见下节。
 
 `src/omp/action-fusion.ts` 只有明确报错的开关守卫。原因和固定源码链接见 `docs/action-fusion-blocker.md`。
 
@@ -52,3 +52,38 @@ Action Fusion 的受保护命令派发被 OMP 接口阻塞，未复制其 file-q
 ## 后续同步
 
 保留 fork 的上游 Git 历史。后续先取所选文件到候选目录，比较上述差异，更新来源与校验值，再执行固定版本类型检查、测试和真实 smoke。不要直接覆盖本地已适配源码，也不要在验证前提升支持版本或推送主分支。
+## Evidence-Preserving Reducer 适配（2026-09-12）
+
+继续使用同一个锁定 commit `d7ecfc089944f0d04b80122a0a9a6ca0d786f3d0`，未移动上游基线；各文件 Git blob 和当前本地 SHA256 写入 `upstream.lock.json`。根目录原版 SoL-Pi、OMP core/node_modules 均未改动，NVIDIA 版权和 MIT 许可保留。
+
+| 上游 EPR 文件 | 本地文件 | 差异 |
+|---|---|---|
+| `config.ts` | `src/upstream/sol-pi/evidence-preserving-reducer/config.ts` | 字节不变，复用诊断/敏感正则、hash、阈值、schema、引用和输出上限；适配配置开启时强制显式路由，不暗用上游默认 |
+| `archive.ts` | 同目录 `archive.ts` | 保留 hash 分片、排他创建及旧对象完整性检查；补齐逐层目录/文件 symlink 拒绝、O_NOFOLLOW、权限、fsync、原始字节和 UTF-8 校验；删除无意义 archiveRoot 包装 |
+| `receipt.ts` | 同目录 `receipt.ts` | 引用、来源 hash、状态、数量/长度校验算法不变；替换 provider type-only import；去掉“lossless”误导措辞，显式声明引用/分类不保证完整性，恢复说明改用 OMP read |
+| `candidate.ts` | 同目录 `candidate.ts` | 纯文本 native bash、沿用诊断命令判断；不读取 Pi 临时日志，不猜 OMP 私有 artifact 路径，不实现 then_run；返回 command/body，不改写结果 |
+| `provider.ts` | `src/omp/reducer-provider.ts` | 公开 ModelRegistry.find/getApiKey 与 pi-ai.completeSimple；真正父 signal + deadline；统计实际 completed attempts、usage/cost/duration，错误输出脱敏 |
+| `index.ts` | `src/omp/evidence-preserving-reducer.ts` | 收集 tool_result；在公开 session_stop 下等待 reducer；缓存验证 receipt，仅修改随后 Context 投影；无结果改写、自动续跑、私有 session、后台 jobs |
+
+### 与原上游及实施计划第 9 节的明确差异
+
+1. **取消优先于首次读取节省。** OMP 18.1.18 `ExtensionContext`、`ToolResultEvent`、`ContextEvent` 没有公开 signal。真实宿主探针也确认 `contextHasSignal=false`。不用类型断言伪造 signal，不包装原生 bash 去丢失其审批元数据。使用 `shared-events.ts:97-106` 的 `session_stop.signal`；`agent-session.ts:4110-4129` 将公开事件接到 post-prompt 取消控制器。因此首轮全文不变，只节省后续 Context 重放。宿主子代理不发此 hook，保持原文。
+2. **认证不绕路。** registry 没有 complete；公开 `getApiKey(model, sessionId, {signal})` 以请求内回调转交给 `completeSimple`。没有读取/复制认证文件或新存储密钥。未直接采用 `registry.resolver`：锁定版 `config/api-key-resolver.ts:53-55` 初次认证未传 signal；强制刷新分支才传递。没有复制其认证轮换策略，也没有适配层重试。模型对象保持宿主解析的 URL/headers，`systemPrompt` 适配为 OMP 的 string[]。
+3. **依赖明确。** 将已经安装并锁定的 `@oh-my-pi/pi-ai@18.1.18` 声明为直接 peer/dev 依赖；仅补既有 `bun.lock` 的根声明，不升级依赖、不安装第二套 Pi。OMP loader 的 canonical bare pi-ai import shim 连接宿主运行时；真实选定路由的完成链路证明了正常调用可用，不泛化为任意自定义 API 覆盖都有效。
+4. **错误状态不依赖事件顶层。** 补查 details.exitCode、isError/hasError、timedOut 和明确失败尾注；矛盾成功诊断保留原文。工具结果事件订阅返回 void，从不写回 content/details/isError。失败 receipt 仍为 failure，Context 消息其他协议字段原样保留。
+5. **native eval 不是 Action Fusion。** 会话内依据事件关联唯一外层 eval，只替换同一已观察结果中的唯一精确原文（或 JSON 转义字符串）。父调用歧义、重复正文、截断或改格式都拒绝投影。不支持从任意 eval 输出猜回日志，也不生成 then_run。
+6. **组合 fail-open。** EPR 先投影，ObservationPack 明确跳过 receipt 和 EPR 原文回退；无可验证缓存的 bash/eval（包括重启）也保守保留。原 OP 模块的接口增加这个明确保留集合，其他观察逻辑不变。每次投影复核归档，工具调用/内容变动不复用旧 receipt。
+7. **去重范围。** 内存状态按 session-derived root、工具调用 ID、完整内容 hash。失败、取消也记录 attempted；重复 settle/context 不重新花费。无持久摘要数据库，重启不重新处理历史消息；归档和原会话保留。
+8. **遥测边界。** `SOL_OMP_EPR` 记录 request/response/verified/fallback、hash、实际 completed-attempt usage/cost/duration。错误/取消响应的账单完整性为 false，不能把零使用字段当免费。没有复制上游 TUI、journal session entries 或节省量估算；receipt 的历史标记/schema 保留，与 ObservationPack 识别兼容。
+
+单元测试、真实模型、故障注入与首次失败严格分层见验证报告。无效引用最终用“真实模型返回后、校验前”边界注入验证；临时注入入口/探针已移除，不向永久运行源码留下假模型或测试路由。三个 high 依赖告警仍未修复。
+
+## EPR 生命周期补修（经用户授权）
+
+整个 settle 队列增加 min(25000ms, 配置超时) 的共享预算，给 OMP 18.1.18 默认 30 秒 handler 留 5 秒取消清理余量；预算覆盖归档与全部候选，父取消转发并等待辅助工作结束，预算耗尽/迟到 receipt 原文回退且不重试。与原版/初版每请求 90 秒不同；配置字段仍兼容且用户配置未改。真实 runner 的三候选探针在 25.032 秒返回、无活动辅助工作或宿主超时告警；模型未调用。非协作取消、卡死 I/O 不作硬截止保证。详细前后证据见 docs/epr-root-cause-analysis-2026-09-12.md 第12节。
+
+### Artifact 恢复等待与取消补修
+
+observe 仅同步收集，不执行 Artifact I/O；完整源恢复统一进入 session_stop 的 settle 预算。候选在任何恢复 await 前标记 attempted；共享 signal/deadline 在路径查询、目录枚举及读取前后检查，readFile 绑定 signal。取消/到期后不启动回退 I/O 或后续候选，不接受迟到源，也不重复恢复或花费。getArtifactPath 与目录枚举没有取消参数，已经开始的操作须等待结束，不通过 Promise.race 遗留后台工作。恢复后的秘密、大小、状态准入与不可用原文回退不变。
+
+四项新回归及最终 68 项完整回归通过，tsc 与真实 OMP 加载/关闭烟测通过；未发送真实模型请求。此次真实宿主烟测仅覆盖加载/关闭，注册恢复路径另用无模型内存烟测验证。历史第15–16节的“双重恢复”说明由此更新；详细证据及非协作取消边界见根因分析第17节。

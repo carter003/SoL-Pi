@@ -1,0 +1,2090 @@
+{
+  "date": "2026-09-12",
+  "scope": "synthetic OMP verification only; excludes this implementation chat/subagent usage",
+  "baselineCommit": "eea74a7d410f7d7b016413760fabff4afc2c7759",
+  "upstreamCommit": "d7ecfc089944f0d04b80122a0a9a6ca0d786f3d0",
+  "environment": {
+    "omp": "18.1.18",
+    "bun": "1.3.14",
+    "node": "24.15.0",
+    "platform": "Linux/WSL2"
+  },
+  "config": {
+    "version": 1,
+    "observationPack": true,
+    "actionFusion": false,
+    "evidencePreservingReducer": true,
+    "evidencePreservingReducerProvider": "opencode-go",
+    "evidencePreservingReducerModel": "glm-5.3-flash",
+    "effectiveTimeoutMs": 90000
+  },
+  "unchangedSettings": {
+    "main": "openai-codex/gpt-6-astra",
+    "thinking": "high",
+    "providers.openai-codex.codeMode": "on",
+    "bash.autoBackground.enabled": false
+  },
+  "pricing": {
+    "source": "OMP runtime model registry; USD per million tokens; not invoice",
+    "reducer": {
+      "input": 0.075,
+      "output": 0.25,
+      "cacheRead": 0.015,
+      "cacheWrite": 0,
+      "subscriptionLabel": "2x usage"
+    },
+    "main": {
+      "input": 10,
+      "output": 50,
+      "cacheRead": 1,
+      "cacheWrite": 0
+    }
+  },
+  "workload": {
+    "package": {
+      "private": true,
+      "scripts": {
+        "test": "node synthetic.cjs"
+      }
+    },
+    "source": "for (let i=0;i<240;i++) {\n if(i===40) console.log('WARNING optional export target skipped: coverage excludes export worker');\n else if(i===120) console.log('TARGET integration smoke checks NOT RUN: requires external service');\n else if(i===200) console.log('SUMMARY unit checks 237 passed; no claim about integration coverage');\n else console.log(String(i).padStart(4,'0')+' PASS synthetic unit arithmetic check; deterministic fixture, no business data');\n}\n",
+    "prompts": [
+      "Only synthetic diagnostics. Execute exactly this JavaScript in one eval, using native tool.bash:\n```javascript\nconst result = await tool.bash({command:\"npm test\",timeout:30,async:false});\ndisplay(result.text);\n```\nDo not use raw process APIs, edit files, or call any other tool. Then report whether all unit and integration tests have passed, distinguishing explicit NOT RUN or exclusions. Base your conclusion on this log only. Do not repeat the long log in your answer.",
+      "Without executing tools, review the existing diagnostic evidence: can this change be called fully tested and ready? Name every coverage limitation recorded in the log.",
+      "Without tools, give a final concise go/no-go decision for claiming complete test coverage, with the recorded reasons."
+    ]
+  },
+  "pairedAggregates": {
+    "off": {
+      "frontCalls": 12,
+      "reducerCalls": 0,
+      "frontTokens": 158690,
+      "reducerTokens": 0,
+      "frontCost": 0.4145,
+      "reducerCost": 0,
+      "seconds": 73.31263277299877,
+      "observationBytes": 123720,
+      "totalTokens": 158690,
+      "totalCost": 0.4145
+    },
+    "on": {
+      "frontCalls": 12,
+      "reducerCalls": 3,
+      "frontTokens": 149890,
+      "reducerTokens": 12903,
+      "frontCost": 0.534876,
+      "reducerCost": 0.0010398249999999999,
+      "seconds": 79.84493465398555,
+      "observationBytes": 68443,
+      "totalTokens": 162793,
+      "totalCost": 0.535915825
+    }
+  },
+  "pairs": [
+    {
+      "name": "pair-1-off",
+      "sessionId": "01a09450-b3fc-74bc-9cbe-6a9d173584e9",
+      "front": {
+        "sessionFile": "/tmp/sol-omp-epr-runtime-xf8oonnb/pair-1-off/sessions/2026-09-12T06-31-52-060Z_01a09450-b3fc-74bc-9cbe-6a9d173584e9.jsonl",
+        "sessionId": "01a09450-b3fc-74bc-9cbe-6a9d173584e9",
+        "userMessages": 3,
+        "assistantMessages": 4,
+        "toolCalls": 1,
+        "toolResults": 1,
+        "totalMessages": 8,
+        "tokens": {
+          "input": 15930,
+          "output": 365,
+          "reasoning": 24,
+          "cacheRead": 36608,
+          "cacheWrite": 0,
+          "total": 52903
+        },
+        "cost": 0.21415800000000002,
+        "premiumRequests": 0,
+        "contextUsage": {
+          "tokens": 11733,
+          "contextWindow": 272000,
+          "percent": 4.3136029411764705
+        }
+      },
+      "seconds": [
+        11.16375460800191,
+        4.952528501002234,
+        4.874334896012442
+      ],
+      "reducer": [],
+      "requests": 0,
+      "verified": [],
+      "fallbacks": [],
+      "contexts": [
+        [],
+        [
+          {
+            "id": "call_kJ0I44eaIuVod2imdq0WHAjX|fc_0aa83a775cc9879a016aa4f1db7b9887d0922e56e5631a59fb",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_kJ0I44eaIuVod2imdq0WHAjX|fc_0aa83a775cc9879a016aa4f1db7b9887d0922e56e5631a59fb",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_kJ0I44eaIuVod2imdq0WHAjX|fc_0aa83a775cc9879a016aa4f1db7b9887d0922e56e5631a59fb",
+            "bytes": 1326,
+            "receipt": false,
+            "packed": true
+          }
+        ]
+      ],
+      "nativeCalls": [
+        "eval",
+        "bash"
+      ],
+      "exit": 0,
+      "enabled": false,
+      "pair": 1
+    },
+    {
+      "name": "pair-1-on",
+      "sessionId": "01a09451-05e7-7088-8ef2-f20ec3abae19",
+      "front": {
+        "sessionFile": "/tmp/sol-omp-epr-runtime-xf8oonnb/pair-1-on/sessions/2026-09-12T06-32-13-031Z_01a09451-05e7-7088-8ef2-f20ec3abae19.jsonl",
+        "sessionId": "01a09451-05e7-7088-8ef2-f20ec3abae19",
+        "userMessages": 3,
+        "assistantMessages": 4,
+        "toolCalls": 1,
+        "toolResults": 1,
+        "totalMessages": 8,
+        "tokens": {
+          "input": 15926,
+          "output": 339,
+          "reasoning": 0,
+          "cacheRead": 33664,
+          "cacheWrite": 0,
+          "total": 49929
+        },
+        "cost": 0.209874,
+        "premiumRequests": 0,
+        "contextUsage": {
+          "tokens": 11922,
+          "contextWindow": 272000,
+          "percent": 4.383088235294117
+        }
+      },
+      "seconds": [
+        14.301840372005245,
+        6.564954543995555,
+        7.692681394997635
+      ],
+      "reducer": [
+        {
+          "session": "01a09451-05e7-7088-8ef2-f20ec3abae19",
+          "toolCallId": "js-bash-bcf20bdb-ec35-487a-a18f-ba2a4bdd0fb9",
+          "targetId": "call_Fioh5eKZrnKDZrPCmeS3OrWt|fc_0bd44b4fee0264e1016aa4f1f0987887d0816655a6d222b402",
+          "sourceSha256": "f678067d540ea46eb5a50a24a1fe0e940a8f085823e915eb6b7435792c226035",
+          "phase": "response",
+          "provider": "opencode-go",
+          "model": "glm-5.3-flash",
+          "durationMs": 1937.6788820000002,
+          "stopReason": "stop",
+          "usage": {
+            "input": 4165,
+            "output": 134,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 4299
+          },
+          "cost": {
+            "input": 0.000312375,
+            "output": 3.35e-05,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0.000345875
+          },
+          "attempts": 1,
+          "usageComplete": true
+        }
+      ],
+      "requests": 1,
+      "verified": [
+        {
+          "session": "01a09451-05e7-7088-8ef2-f20ec3abae19",
+          "toolCallId": "js-bash-bcf20bdb-ec35-487a-a18f-ba2a4bdd0fb9",
+          "targetId": "call_Fioh5eKZrnKDZrPCmeS3OrWt|fc_0bd44b4fee0264e1016aa4f1f0987887d0816655a6d222b402",
+          "sourceSha256": "f678067d540ea46eb5a50a24a1fe0e940a8f085823e915eb6b7435792c226035",
+          "phase": "verified",
+          "sourceBytes": 19957,
+          "receiptBytes": 1384,
+          "status": "success",
+          "uncertain": false,
+          "evidence": [
+            {
+              "kind": "summary",
+              "line": 203,
+              "quote": "SUMMARY unit checks 237 passed; no claim about integration coverage",
+              "quoteSha256": "17818f0634ade6aaa4d74de631054bd8b65f09bb0f5845d409ef03ae6e96b7d0"
+            },
+            {
+              "kind": "warning",
+              "line": 43,
+              "quote": "WARNING optional export target skipped: coverage excludes export worker",
+              "quoteSha256": "6e94ed0c441850b1c16e587b81615fede7bba8c08a7eca43faaaf929454af592"
+            },
+            {
+              "kind": "target",
+              "line": 123,
+              "quote": "TARGET integration smoke checks NOT RUN: requires external service",
+              "quoteSha256": "bcc10b020bb1fb615f82ee7e9ab65eacf9c89e083efc383f91a7a8cd5e4f5c8f"
+            }
+          ]
+        }
+      ],
+      "fallbacks": [],
+      "contexts": [
+        [],
+        [
+          {
+            "id": "call_Fioh5eKZrnKDZrPCmeS3OrWt|fc_0bd44b4fee0264e1016aa4f1f0987887d0816655a6d222b402",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_Fioh5eKZrnKDZrPCmeS3OrWt|fc_0bd44b4fee0264e1016aa4f1f0987887d0816655a6d222b402",
+            "bytes": 1384,
+            "receipt": true,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_Fioh5eKZrnKDZrPCmeS3OrWt|fc_0bd44b4fee0264e1016aa4f1f0987887d0816655a6d222b402",
+            "bytes": 1384,
+            "receipt": true,
+            "packed": false
+          }
+        ]
+      ],
+      "nativeCalls": [
+        "eval",
+        "bash"
+      ],
+      "exit": 0,
+      "enabled": true,
+      "pair": 1
+    },
+    {
+      "name": "pair-2-on",
+      "sessionId": "01a09451-7626-70b7-a9bd-e3c0ab6d5c2f",
+      "front": {
+        "sessionFile": "/tmp/sol-omp-epr-runtime-xf8oonnb/pair-2-on/sessions/2026-09-12T06-32-41-766Z_01a09451-7626-70b7-a9bd-e3c0ab6d5c2f.jsonl",
+        "sessionId": "01a09451-7626-70b7-a9bd-e3c0ab6d5c2f",
+        "userMessages": 3,
+        "assistantMessages": 4,
+        "toolCalls": 1,
+        "toolResults": 1,
+        "totalMessages": 8,
+        "tokens": {
+          "input": 5419,
+          "output": 343,
+          "reasoning": 0,
+          "cacheRead": 44288,
+          "cacheWrite": 0,
+          "total": 50050
+        },
+        "cost": 0.115628,
+        "premiumRequests": 0,
+        "contextUsage": {
+          "tokens": 11981,
+          "contextWindow": 272000,
+          "percent": 4.404779411764706
+        }
+      },
+      "seconds": [
+        15.024494721001247,
+        6.067052782993414,
+        5.065752170994529
+      ],
+      "reducer": [
+        {
+          "session": "01a09451-7626-70b7-a9bd-e3c0ab6d5c2f",
+          "toolCallId": "js-bash-d184695c-2d71-4572-9c4e-dcf4ae304ed8",
+          "targetId": "call_bXcEi4UNEzg1LalEQqTdMq6v|fc_04cd24017f6201e7016aa4f20e803087d0ac1930010e1f760a",
+          "sourceSha256": "f678067d540ea46eb5a50a24a1fe0e940a8f085823e915eb6b7435792c226035",
+          "phase": "response",
+          "provider": "opencode-go",
+          "model": "glm-5.3-flash",
+          "durationMs": 2348.062081,
+          "stopReason": "stop",
+          "usage": {
+            "input": 4165,
+            "output": 149,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 4314
+          },
+          "cost": {
+            "input": 0.000312375,
+            "output": 3.725e-05,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0.000349625
+          },
+          "attempts": 1,
+          "usageComplete": true
+        }
+      ],
+      "requests": 1,
+      "verified": [
+        {
+          "session": "01a09451-7626-70b7-a9bd-e3c0ab6d5c2f",
+          "toolCallId": "js-bash-d184695c-2d71-4572-9c4e-dcf4ae304ed8",
+          "targetId": "call_bXcEi4UNEzg1LalEQqTdMq6v|fc_04cd24017f6201e7016aa4f20e803087d0ac1930010e1f760a",
+          "sourceSha256": "f678067d540ea46eb5a50a24a1fe0e940a8f085823e915eb6b7435792c226035",
+          "phase": "verified",
+          "sourceBytes": 19957,
+          "receiptBytes": 1518,
+          "status": "success",
+          "uncertain": false,
+          "evidence": [
+            {
+              "kind": "warning",
+              "line": 43,
+              "quote": "WARNING optional export target skipped: coverage excludes export worker",
+              "quoteSha256": "6e94ed0c441850b1c16e587b81615fede7bba8c08a7eca43faaaf929454af592"
+            },
+            {
+              "kind": "target",
+              "line": 123,
+              "quote": "TARGET integration smoke checks NOT RUN: requires external service",
+              "quoteSha256": "bcc10b020bb1fb615f82ee7e9ab65eacf9c89e083efc383f91a7a8cd5e4f5c8f"
+            },
+            {
+              "kind": "summary",
+              "line": 203,
+              "quote": "SUMMARY unit checks 237 passed; no claim about integration coverage",
+              "quoteSha256": "17818f0634ade6aaa4d74de631054bd8b65f09bb0f5845d409ef03ae6e96b7d0"
+            },
+            {
+              "kind": "summary",
+              "line": 245,
+              "quote": "Wall time: 0.16 seconds",
+              "quoteSha256": "b07b79d7d5dc21f36be6178fe6fe36fcaf0f4ede71c77eb52103f4729628484f"
+            }
+          ]
+        }
+      ],
+      "fallbacks": [],
+      "contexts": [
+        [],
+        [
+          {
+            "id": "call_bXcEi4UNEzg1LalEQqTdMq6v|fc_04cd24017f6201e7016aa4f20e803087d0ac1930010e1f760a",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_bXcEi4UNEzg1LalEQqTdMq6v|fc_04cd24017f6201e7016aa4f20e803087d0ac1930010e1f760a",
+            "bytes": 1518,
+            "receipt": true,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_bXcEi4UNEzg1LalEQqTdMq6v|fc_04cd24017f6201e7016aa4f20e803087d0ac1930010e1f760a",
+            "bytes": 1518,
+            "receipt": true,
+            "packed": false
+          }
+        ]
+      ],
+      "nativeCalls": [
+        "eval",
+        "bash"
+      ],
+      "exit": 0,
+      "enabled": true,
+      "pair": 2
+    },
+    {
+      "name": "pair-2-off",
+      "sessionId": "01a09451-dc90-73c6-a82b-758c14573a2f",
+      "front": {
+        "sessionFile": "/tmp/sol-omp-epr-runtime-xf8oonnb/pair-2-off/sessions/2026-09-12T06-33-07-984Z_01a09451-dc90-73c6-a82b-758c14573a2f.jsonl",
+        "sessionId": "01a09451-dc90-73c6-a82b-758c14573a2f",
+        "userMessages": 3,
+        "assistantMessages": 4,
+        "toolCalls": 1,
+        "toolResults": 1,
+        "totalMessages": 8,
+        "tokens": {
+          "input": 1342,
+          "output": 363,
+          "reasoning": 0,
+          "cacheRead": 51200,
+          "cacheWrite": 0,
+          "total": 52905
+        },
+        "cost": 0.08277,
+        "premiumRequests": 0,
+        "contextUsage": {
+          "tokens": 11743,
+          "contextWindow": 272000,
+          "percent": 4.317279411764706
+        }
+      },
+      "seconds": [
+        13.871392941000522,
+        5.565994035001495,
+        5.876143385990872
+      ],
+      "reducer": [],
+      "requests": 0,
+      "verified": [],
+      "fallbacks": [],
+      "contexts": [
+        [],
+        [
+          {
+            "id": "call_G3AFRI3cu3GxF2CmltKWUvg5|fc_0d2e89f231173731016aa4f2279f7087d0983716c32bc08f8f",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_G3AFRI3cu3GxF2CmltKWUvg5|fc_0d2e89f231173731016aa4f2279f7087d0983716c32bc08f8f",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_G3AFRI3cu3GxF2CmltKWUvg5|fc_0d2e89f231173731016aa4f2279f7087d0983716c32bc08f8f",
+            "bytes": 1326,
+            "receipt": false,
+            "packed": true
+          }
+        ]
+      ],
+      "nativeCalls": [
+        "eval",
+        "bash"
+      ],
+      "exit": 0,
+      "enabled": false,
+      "pair": 2
+    },
+    {
+      "name": "pair-3-off",
+      "sessionId": "01a09452-3fa1-721f-8cf1-ae7b4e4f8dab",
+      "front": {
+        "sessionFile": "/tmp/sol-omp-epr-runtime-xf8oonnb/pair-3-off/sessions/2026-09-12T06-33-33-345Z_01a09452-3fa1-721f-8cf1-ae7b4e4f8dab.jsonl",
+        "sessionId": "01a09452-3fa1-721f-8cf1-ae7b4e4f8dab",
+        "userMessages": 3,
+        "assistantMessages": 4,
+        "toolCalls": 1,
+        "toolResults": 1,
+        "totalMessages": 8,
+        "tokens": {
+          "input": 5304,
+          "output": 346,
+          "reasoning": 0,
+          "cacheRead": 47232,
+          "cacheWrite": 0,
+          "total": 52882
+        },
+        "cost": 0.117572,
+        "premiumRequests": 0,
+        "contextUsage": {
+          "tokens": 11738,
+          "contextWindow": 272000,
+          "percent": 4.315441176470588
+        }
+      },
+      "seconds": [
+        14.948939552996308,
+        6.974711785995169,
+        5.084833066997817
+      ],
+      "reducer": [],
+      "requests": 0,
+      "verified": [],
+      "fallbacks": [],
+      "contexts": [
+        [],
+        [
+          {
+            "id": "call_M6AkIDhbVFKSXqJB1ReEmWug|fc_029a63639b0e7801016aa4f241b02487d0bf60491f4cb2beed",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_M6AkIDhbVFKSXqJB1ReEmWug|fc_029a63639b0e7801016aa4f241b02487d0bf60491f4cb2beed",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_M6AkIDhbVFKSXqJB1ReEmWug|fc_029a63639b0e7801016aa4f241b02487d0bf60491f4cb2beed",
+            "bytes": 1326,
+            "receipt": false,
+            "packed": true
+          }
+        ]
+      ],
+      "nativeCalls": [
+        "eval",
+        "bash"
+      ],
+      "exit": 0,
+      "enabled": false,
+      "pair": 3
+    },
+    {
+      "name": "pair-3-on",
+      "sessionId": "01a09452-aa2d-7356-9114-7a9c9752661c",
+      "front": {
+        "sessionFile": "/tmp/sol-omp-epr-runtime-xf8oonnb/pair-3-on/sessions/2026-09-12T06-34-00-621Z_01a09452-aa2d-7356-9114-7a9c9752661c.jsonl",
+        "sessionId": "01a09452-aa2d-7356-9114-7a9c9752661c",
+        "userMessages": 3,
+        "assistantMessages": 4,
+        "toolCalls": 1,
+        "toolResults": 1,
+        "totalMessages": 8,
+        "tokens": {
+          "input": 15916,
+          "output": 331,
+          "reasoning": 0,
+          "cacheRead": 33664,
+          "cacheWrite": 0,
+          "total": 49911
+        },
+        "cost": 0.209374,
+        "premiumRequests": 0,
+        "contextUsage": {
+          "tokens": 11917,
+          "contextWindow": 272000,
+          "percent": 4.38125
+        }
+      },
+      "seconds": [
+        14.004782019997947,
+        5.658762156002922,
+        5.464614491997054
+      ],
+      "reducer": [
+        {
+          "session": "01a09452-aa2d-7356-9114-7a9c9752661c",
+          "toolCallId": "js-bash-fc2cafe6-ead7-43d1-87dc-1245a7f6b742",
+          "targetId": "call_KlUTt2YFoA3stGg5P4K4Ly95|fc_03cac2d4a05924d3016aa4f25cdec487d0b193fece837b908b",
+          "sourceSha256": "987bafc8c424bd187d98991f0cee221f15ec9adec11ecb02650dcd728dbd5c2d",
+          "phase": "response",
+          "provider": "opencode-go",
+          "model": "glm-5.3-flash",
+          "durationMs": 2068.8597740000005,
+          "stopReason": "stop",
+          "usage": {
+            "input": 4161,
+            "output": 129,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 4290
+          },
+          "cost": {
+            "input": 0.000312075,
+            "output": 3.225e-05,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0.000344325
+          },
+          "attempts": 1,
+          "usageComplete": true
+        }
+      ],
+      "requests": 1,
+      "verified": [
+        {
+          "session": "01a09452-aa2d-7356-9114-7a9c9752661c",
+          "toolCallId": "js-bash-fc2cafe6-ead7-43d1-87dc-1245a7f6b742",
+          "targetId": "call_KlUTt2YFoA3stGg5P4K4Ly95|fc_03cac2d4a05924d3016aa4f25cdec487d0b193fece837b908b",
+          "sourceSha256": "987bafc8c424bd187d98991f0cee221f15ec9adec11ecb02650dcd728dbd5c2d",
+          "phase": "verified",
+          "sourceBytes": 19957,
+          "receiptBytes": 1384,
+          "status": "success",
+          "uncertain": false,
+          "evidence": [
+            {
+              "kind": "summary",
+              "line": 203,
+              "quote": "SUMMARY unit checks 237 passed; no claim about integration coverage",
+              "quoteSha256": "17818f0634ade6aaa4d74de631054bd8b65f09bb0f5845d409ef03ae6e96b7d0"
+            },
+            {
+              "kind": "warning",
+              "line": 43,
+              "quote": "WARNING optional export target skipped: coverage excludes export worker",
+              "quoteSha256": "6e94ed0c441850b1c16e587b81615fede7bba8c08a7eca43faaaf929454af592"
+            },
+            {
+              "kind": "target",
+              "line": 123,
+              "quote": "TARGET integration smoke checks NOT RUN: requires external service",
+              "quoteSha256": "bcc10b020bb1fb615f82ee7e9ab65eacf9c89e083efc383f91a7a8cd5e4f5c8f"
+            }
+          ]
+        }
+      ],
+      "fallbacks": [],
+      "contexts": [
+        [],
+        [
+          {
+            "id": "call_KlUTt2YFoA3stGg5P4K4Ly95|fc_03cac2d4a05924d3016aa4f25cdec487d0b193fece837b908b",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_KlUTt2YFoA3stGg5P4K4Ly95|fc_03cac2d4a05924d3016aa4f25cdec487d0b193fece837b908b",
+            "bytes": 1384,
+            "receipt": true,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_KlUTt2YFoA3stGg5P4K4Ly95|fc_03cac2d4a05924d3016aa4f25cdec487d0b193fece837b908b",
+            "bytes": 1384,
+            "receipt": true,
+            "packed": false
+          }
+        ]
+      ],
+      "nativeCalls": [
+        "eval",
+        "bash"
+      ],
+      "exit": 0,
+      "enabled": true,
+      "pair": 3
+    }
+  ],
+  "allRuns": [
+    {
+      "name": "cancel-real",
+      "front": {
+        "calls": 3,
+        "tokens": {
+          "input": 4564,
+          "output": 249,
+          "cacheRead": 36224,
+          "cacheWrite": 0,
+          "totalTokens": 41037
+        },
+        "cost": 0.094314,
+        "modelDurationMs": 17153.866350000004
+      },
+      "reducer": {
+        "invocations": 1,
+        "completedAttempts": 1,
+        "reportedTokens": 0,
+        "reportedCost": 0,
+        "durationMs": 158.09884899999997,
+        "usageIncomplete": true
+      },
+      "reasons": [
+        "cancelled"
+      ],
+      "rpcErrors": [],
+      "status": "PASS"
+    },
+    {
+      "name": "failure-20-targets",
+      "front": {
+        "calls": 3,
+        "tokens": {
+          "input": 13907,
+          "output": 333,
+          "cacheRead": 24448,
+          "cacheWrite": 0,
+          "totalTokens": 38688
+        },
+        "cost": 0.18016800000000002,
+        "modelDurationMs": 19948.280952999998
+      },
+      "reducer": {
+        "invocations": 1,
+        "completedAttempts": 1,
+        "reportedTokens": 3136,
+        "reportedCost": 0.000284375,
+        "durationMs": 2832.887383000001,
+        "usageIncomplete": false
+      },
+      "reasons": [
+        "invalid-json"
+      ],
+      "rpcErrors": [],
+      "status": "PASS"
+    },
+    {
+      "name": "failure-single",
+      "front": {
+        "calls": 3,
+        "tokens": {
+          "input": 14552,
+          "output": 391,
+          "cacheRead": 22016,
+          "cacheWrite": 0,
+          "totalTokens": 36959
+        },
+        "cost": 0.18708600000000003,
+        "modelDurationMs": 20723.307476999995
+      },
+      "reducer": {
+        "invocations": 1,
+        "completedAttempts": 1,
+        "reportedTokens": 3041,
+        "reportedCost": 0.000254325,
+        "durationMs": 7568.731168,
+        "usageIncomplete": false
+      },
+      "reasons": [],
+      "rpcErrors": [],
+      "status": "PASS"
+    },
+    {
+      "name": "final-normal-route",
+      "front": {
+        "calls": 3,
+        "tokens": {
+          "input": 5468,
+          "output": 270,
+          "cacheRead": 32256,
+          "cacheWrite": 0,
+          "totalTokens": 37994
+        },
+        "cost": 0.100436,
+        "modelDurationMs": 16526.463001000004
+      },
+      "reducer": {
+        "invocations": 1,
+        "completedAttempts": 1,
+        "reportedTokens": 4304,
+        "reportedCost": 0.00034782499999999996,
+        "durationMs": 2253.526301,
+        "usageIncomplete": false
+      },
+      "reasons": [],
+      "rpcErrors": [],
+      "status": "PASS"
+    },
+    {
+      "name": "first-on",
+      "front": {
+        "calls": 2,
+        "tokens": {
+          "input": 12800,
+          "output": 236,
+          "cacheRead": 10880,
+          "cacheWrite": 0,
+          "totalTokens": 23916
+        },
+        "cost": 0.15068,
+        "modelDurationMs": 10656.227965
+      },
+      "reducer": {
+        "invocations": 0,
+        "completedAttempts": 0,
+        "reportedTokens": 0,
+        "reportedCost": 0,
+        "durationMs": 0,
+        "usageIncomplete": false
+      },
+      "reasons": [
+        "source-not-in-current-observation"
+      ],
+      "rpcErrors": [],
+      "status": "FAIL",
+      "note": "Full object display was truncated by native eval; exact source correlation failed. Original retained, no reducer request. Later raw-text display succeeds; not treated as an E2E pass."
+    },
+    {
+      "name": "invalid-citation-boundary",
+      "front": {
+        "calls": 3,
+        "tokens": {
+          "input": 15193,
+          "output": 260,
+          "cacheRead": 25600,
+          "cacheWrite": 0,
+          "totalTokens": 41053
+        },
+        "cost": 0.19053,
+        "modelDurationMs": 15646.061050000015
+      },
+      "reducer": {
+        "invocations": 1,
+        "completedAttempts": 1,
+        "reportedTokens": 4290,
+        "reportedCost": 0.000344325,
+        "durationMs": 2667.7832930000004,
+        "usageIncomplete": false
+      },
+      "reasons": [
+        "unverifiable-quote"
+      ],
+      "rpcErrors": [
+        "Agent is already processing. Use steer() or followUp() to queue messages, or wait for completion."
+      ],
+      "status": "PASS",
+      "note": "PASS after correcting driver synchronization: real approved model response deliberately corrupted before production validation; unverifiable-quote and full Context retained. Initial next prompt was rejected while host processing; wait for agent_end fixed driver."
+    },
+    {
+      "name": "invalid-citation-host",
+      "front": {
+        "calls": 3,
+        "tokens": {
+          "input": 4194,
+          "output": 264,
+          "cacheRead": 36608,
+          "cacheWrite": 0,
+          "totalTokens": 41066
+        },
+        "cost": 0.091748,
+        "modelDurationMs": 15432.725518
+      },
+      "reducer": {
+        "invocations": 1,
+        "completedAttempts": 1,
+        "reportedTokens": 0,
+        "reportedCost": 0,
+        "durationMs": 15567.263159999999,
+        "usageIncomplete": true
+      },
+      "reasons": [
+        "provider-error"
+      ],
+      "rpcErrors": [],
+      "status": "FAIL",
+      "note": "FAIL fault harness: API-only registration did not change built-in model API; .invalid endpoint produced provider-error instead of intended quote fault."
+    },
+    {
+      "name": "invalid-citation-host-fixed",
+      "front": {
+        "calls": 0,
+        "tokens": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0
+        },
+        "cost": 0,
+        "modelDurationMs": 0
+      },
+      "reducer": {
+        "invocations": 0,
+        "completedAttempts": 0,
+        "reportedTokens": 0,
+        "reportedCost": 0,
+        "durationMs": 0,
+        "usageIncomplete": false
+      },
+      "reasons": [],
+      "rpcErrors": [],
+      "status": "FAIL",
+      "note": "FAIL fixture loading: public model registration required apiKey/oauth. Process exit 1, no model calls. Did not inject a fake key or copy credentials."
+    },
+    {
+      "name": "invalid-citation-public-api",
+      "front": {
+        "calls": 3,
+        "tokens": {
+          "input": 15650,
+          "output": 279,
+          "cacheRead": 22016,
+          "cacheWrite": 0,
+          "totalTokens": 37945
+        },
+        "cost": 0.19246600000000003,
+        "modelDurationMs": 15405.508336
+      },
+      "reducer": {
+        "invocations": 1,
+        "completedAttempts": 1,
+        "reportedTokens": 4283,
+        "reportedCost": 0.000343275,
+        "durationMs": 2134.0247469999995,
+        "usageIncomplete": false
+      },
+      "reasons": [],
+      "rpcErrors": [],
+      "status": "FAIL",
+      "note": "FAIL fault harness: custom API registration did not replace built-in provider transport. A real normal reducer response was verified; all actual usage counted, not a quote-fault pass."
+    },
+    {
+      "name": "large-text-on",
+      "front": {
+        "calls": 4,
+        "tokens": {
+          "input": 5423,
+          "output": 390,
+          "cacheRead": 43904,
+          "cacheWrite": 0,
+          "totalTokens": 49717
+        },
+        "cost": 0.117634,
+        "modelDurationMs": 22521.091096000004
+      },
+      "reducer": {
+        "invocations": 1,
+        "completedAttempts": 1,
+        "reportedTokens": 4290,
+        "reportedCost": 0.000344325,
+        "durationMs": 1810.6569139999992,
+        "usageIncomplete": false
+      },
+      "reasons": [],
+      "rpcErrors": [],
+      "status": "PASS",
+      "note": "Initial eval code copied a trailing prose period, SyntaxError, followed by successful native call. Included all foreground usage; excluded from controlled pairs."
+    },
+    {
+      "name": "pair-1-off",
+      "front": {
+        "calls": 4,
+        "tokens": {
+          "input": 15930,
+          "output": 365,
+          "cacheRead": 36608,
+          "cacheWrite": 0,
+          "totalTokens": 52903
+        },
+        "cost": 0.21415800000000002,
+        "modelDurationMs": 18143.107531
+      },
+      "reducer": {
+        "invocations": 0,
+        "completedAttempts": 0,
+        "reportedTokens": 0,
+        "reportedCost": 0,
+        "durationMs": 0,
+        "usageIncomplete": false
+      },
+      "reasons": [],
+      "rpcErrors": [],
+      "status": "PASS"
+    },
+    {
+      "name": "pair-1-on",
+      "front": {
+        "calls": 4,
+        "tokens": {
+          "input": 15926,
+          "output": 339,
+          "cacheRead": 33664,
+          "cacheWrite": 0,
+          "totalTokens": 49929
+        },
+        "cost": 0.209874,
+        "modelDurationMs": 23661.864463
+      },
+      "reducer": {
+        "invocations": 1,
+        "completedAttempts": 1,
+        "reportedTokens": 4299,
+        "reportedCost": 0.000345875,
+        "durationMs": 1937.6788820000002,
+        "usageIncomplete": false
+      },
+      "reasons": [],
+      "rpcErrors": [],
+      "status": "PASS"
+    },
+    {
+      "name": "pair-2-off",
+      "front": {
+        "calls": 4,
+        "tokens": {
+          "input": 1342,
+          "output": 363,
+          "cacheRead": 51200,
+          "cacheWrite": 0,
+          "totalTokens": 52905
+        },
+        "cost": 0.08277,
+        "modelDurationMs": 22339.436839
+      },
+      "reducer": {
+        "invocations": 0,
+        "completedAttempts": 0,
+        "reportedTokens": 0,
+        "reportedCost": 0,
+        "durationMs": 0,
+        "usageIncomplete": false
+      },
+      "reasons": [],
+      "rpcErrors": [],
+      "status": "PASS"
+    },
+    {
+      "name": "pair-2-on",
+      "front": {
+        "calls": 4,
+        "tokens": {
+          "input": 5419,
+          "output": 343,
+          "cacheRead": 44288,
+          "cacheWrite": 0,
+          "totalTokens": 50050
+        },
+        "cost": 0.115628,
+        "modelDurationMs": 20619.828224
+      },
+      "reducer": {
+        "invocations": 1,
+        "completedAttempts": 1,
+        "reportedTokens": 4314,
+        "reportedCost": 0.000349625,
+        "durationMs": 2348.062081,
+        "usageIncomplete": false
+      },
+      "reasons": [],
+      "rpcErrors": [],
+      "status": "PASS"
+    },
+    {
+      "name": "pair-3-off",
+      "front": {
+        "calls": 4,
+        "tokens": {
+          "input": 5304,
+          "output": 346,
+          "cacheRead": 47232,
+          "cacheWrite": 0,
+          "totalTokens": 52882
+        },
+        "cost": 0.11757200000000001,
+        "modelDurationMs": 23864.510368999996
+      },
+      "reducer": {
+        "invocations": 0,
+        "completedAttempts": 0,
+        "reportedTokens": 0,
+        "reportedCost": 0,
+        "durationMs": 0,
+        "usageIncomplete": false
+      },
+      "reasons": [],
+      "rpcErrors": [],
+      "status": "PASS"
+    },
+    {
+      "name": "pair-3-on",
+      "front": {
+        "calls": 4,
+        "tokens": {
+          "input": 15916,
+          "output": 331,
+          "cacheRead": 33664,
+          "cacheWrite": 0,
+          "totalTokens": 49911
+        },
+        "cost": 0.209374,
+        "modelDurationMs": 19692.793426000004
+      },
+      "reducer": {
+        "invocations": 1,
+        "completedAttempts": 1,
+        "reportedTokens": 4290,
+        "reportedCost": 0.000344325,
+        "durationMs": 2068.8597740000005,
+        "usageIncomplete": false
+      },
+      "reasons": [],
+      "rpcErrors": [],
+      "status": "PASS"
+    },
+    {
+      "name": "provider-dns-failure",
+      "front": {
+        "calls": 3,
+        "tokens": {
+          "input": 15198,
+          "output": 264,
+          "cacheRead": 25600,
+          "cacheWrite": 0,
+          "totalTokens": 41062
+        },
+        "cost": 0.19078,
+        "modelDurationMs": 18231.648342999993
+      },
+      "reducer": {
+        "invocations": 1,
+        "completedAttempts": 1,
+        "reportedTokens": 0,
+        "reportedCost": 0,
+        "durationMs": 15542.2922,
+        "usageIncomplete": true
+      },
+      "reasons": [
+        "provider-error"
+      ],
+      "rpcErrors": [],
+      "status": "PASS"
+    },
+    {
+      "name": "resume-readback",
+      "front": {
+        "calls": 2,
+        "tokens": {
+          "input": 2445,
+          "output": 245,
+          "cacheRead": 29696,
+          "cacheWrite": 0,
+          "totalTokens": 32386
+        },
+        "cost": 0.06639600000000001,
+        "modelDurationMs": 14463.169375000001
+      },
+      "reducer": {
+        "invocations": 0,
+        "completedAttempts": 0,
+        "reportedTokens": 0,
+        "reportedCost": 0,
+        "durationMs": 0,
+        "usageIncomplete": false
+      },
+      "reasons": [],
+      "rpcErrors": [],
+      "status": "PASS"
+    },
+    {
+      "name": "timeout-500ms",
+      "front": {
+        "calls": 3,
+        "tokens": {
+          "input": 15195,
+          "output": 262,
+          "cacheRead": 25600,
+          "cacheWrite": 0,
+          "totalTokens": 41057
+        },
+        "cost": 0.19065000000000001,
+        "modelDurationMs": 16347.432896999999
+      },
+      "reducer": {
+        "invocations": 1,
+        "completedAttempts": 1,
+        "reportedTokens": 0,
+        "reportedCost": 0,
+        "durationMs": 523.6144719999993,
+        "usageIncomplete": true
+      },
+      "reasons": [
+        "timeout"
+      ],
+      "rpcErrors": [],
+      "status": "PASS"
+    },
+    {
+      "name": "visible-on",
+      "front": {
+        "calls": 4,
+        "tokens": {
+          "input": 25237,
+          "output": 391,
+          "cacheRead": 21632,
+          "cacheWrite": 0,
+          "totalTokens": 47260
+        },
+        "cost": 0.29355200000000004,
+        "modelDurationMs": 21468.286096
+      },
+      "reducer": {
+        "invocations": 1,
+        "completedAttempts": 1,
+        "reportedTokens": 1706,
+        "reportedCost": 0.000154375,
+        "durationMs": 2971.015617000001,
+        "usageIncomplete": false
+      },
+      "reasons": [],
+      "rpcErrors": [],
+      "status": "PASS",
+      "note": "Initial eval code copied a trailing prose period, SyntaxError, followed by successful native call. Included all foreground usage; excluded from controlled pairs."
+    }
+  ],
+  "allRunTotals": {
+    "frontCalls": 63,
+    "reducerInvocations": 14,
+    "frontTokens": 818720,
+    "reportedReducerTokens": 37953,
+    "frontCost": 2.995816,
+    "reportedReducerCost": 0.00311265,
+    "frontModelSeconds": 352.845609309,
+    "reducerSeconds": 60.384494841,
+    "incompleteReducerUsageRuns": [
+      "cancel-real",
+      "invalid-citation-host",
+      "provider-dns-failure",
+      "timeout-500ms"
+    ]
+  },
+  "evidenceProofs": {
+    "pair-1-on": [
+      {
+        "sourceSha256": "f678067d540ea46eb5a50a24a1fe0e940a8f085823e915eb6b7435792c226035",
+        "sourceBytes": 19957,
+        "archive": "/tmp/sol-omp-epr-runtime-xf8oonnb/pair-1-on/sessions/sol-omp/01a09451-05e7-7088-8ef2-f20ec3abae19/evidence-preserving-reducer/objects/f6/f678067d540ea46eb5a50a24a1fe0e940a8f085823e915eb6b7435792c226035.txt",
+        "archiveMode": "0o600",
+        "quotesVerified": 3,
+        "originalSessionPreserved": true,
+        "omittedCriticalLines": []
+      }
+    ],
+    "pair-2-on": [
+      {
+        "sourceSha256": "f678067d540ea46eb5a50a24a1fe0e940a8f085823e915eb6b7435792c226035",
+        "sourceBytes": 19957,
+        "archive": "/tmp/sol-omp-epr-runtime-xf8oonnb/pair-2-on/sessions/sol-omp/01a09451-7626-70b7-a9bd-e3c0ab6d5c2f/evidence-preserving-reducer/objects/f6/f678067d540ea46eb5a50a24a1fe0e940a8f085823e915eb6b7435792c226035.txt",
+        "archiveMode": "0o600",
+        "quotesVerified": 4,
+        "originalSessionPreserved": true,
+        "omittedCriticalLines": []
+      }
+    ],
+    "pair-3-on": [
+      {
+        "sourceSha256": "987bafc8c424bd187d98991f0cee221f15ec9adec11ecb02650dcd728dbd5c2d",
+        "sourceBytes": 19957,
+        "archive": "/tmp/sol-omp-epr-runtime-xf8oonnb/pair-3-on/sessions/sol-omp/01a09452-aa2d-7356-9114-7a9c9752661c/evidence-preserving-reducer/objects/98/987bafc8c424bd187d98991f0cee221f15ec9adec11ecb02650dcd728dbd5c2d.txt",
+        "archiveMode": "0o600",
+        "quotesVerified": 3,
+        "originalSessionPreserved": true,
+        "omittedCriticalLines": []
+      }
+    ],
+    "failure-single": [
+      {
+        "sourceSha256": "7c1d4ee352053a630fda2bd3509770366d513da8d52e7634b388422755937e45",
+        "sourceBytes": 13214,
+        "archive": "/tmp/sol-omp-epr-runtime-xf8oonnb/failure-single/sessions/sol-omp/01a09455-6045-7087-96aa-b8a7d0f564ba/evidence-preserving-reducer/objects/7c/7c1d4ee352053a630fda2bd3509770366d513da8d52e7634b388422755937e45.txt",
+        "archiveMode": "0o600",
+        "quotesVerified": 4,
+        "originalSessionPreserved": true,
+        "omittedCriticalLines": []
+      }
+    ],
+    "visible-on": [
+      {
+        "sourceSha256": "92ca4411e7b237083ca378ba47f0ec1f4b72da33e83b7995940cc00b3cdec883",
+        "sourceBytes": 6344,
+        "archive": "/tmp/sol-omp-epr-runtime-xf8oonnb/visible-on/sessions/sol-omp/01a09449-c124-778b-a627-929ed7a875e5/evidence-preserving-reducer/objects/92/92ca4411e7b237083ca378ba47f0ec1f4b72da33e83b7995940cc00b3cdec883.txt",
+        "archiveMode": "0o600",
+        "quotesVerified": 4,
+        "originalSessionPreserved": true,
+        "omittedCriticalLines": []
+      }
+    ],
+    "large-text-on": [
+      {
+        "sourceSha256": "fedbbf2b6f48b6f71511670371f50130150af217118f1f325c2440c3ddda3e93",
+        "sourceBytes": 19957,
+        "archive": "/tmp/sol-omp-epr-runtime-xf8oonnb/large-text-on/sessions/sol-omp/01a0944a-a7d2-7000-83e8-07a6eeee30c6/evidence-preserving-reducer/objects/fe/fedbbf2b6f48b6f71511670371f50130150af217118f1f325c2440c3ddda3e93.txt",
+        "archiveMode": "0o600",
+        "quotesVerified": 3,
+        "originalSessionPreserved": true,
+        "omittedCriticalLines": []
+      }
+    ],
+    "final-normal-route": [
+      {
+        "sourceSha256": "fedbbf2b6f48b6f71511670371f50130150af217118f1f325c2440c3ddda3e93",
+        "sourceBytes": 19957,
+        "archive": "/tmp/sol-omp-epr-runtime-xf8oonnb/final-normal-route/sessions/sol-omp/01a0945a-c798-717f-9c0e-8e63462c883c/evidence-preserving-reducer/objects/fe/fedbbf2b6f48b6f71511670371f50130150af217118f1f325c2440c3ddda3e93.txt",
+        "archiveMode": "0o600",
+        "quotesVerified": 4,
+        "originalSessionPreserved": true,
+        "omittedCriticalLines": []
+      }
+    ]
+  },
+  "negativeScenarios": [
+    {
+      "name": "timeout-500ms",
+      "contexts": [
+        [],
+        [
+          {
+            "id": "call_jciWO3YInCFRDJswan1yCMSU|fc_034617e7ee83d0fe016aa4f2b4250c87d08895faab63ad4b2d",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_jciWO3YInCFRDJswan1yCMSU|fc_034617e7ee83d0fe016aa4f2b4250c87d08895faab63ad4b2d",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ]
+      ],
+      "requests": 1,
+      "reducer": [
+        {
+          "session": "01a09454-01d7-750f-8bab-f65a0d18f120",
+          "toolCallId": "js-bash-57a89a4c-7c76-4749-93ff-9fb086263f02",
+          "targetId": "call_jciWO3YInCFRDJswan1yCMSU|fc_034617e7ee83d0fe016aa4f2b4250c87d08895faab63ad4b2d",
+          "sourceSha256": "987bafc8c424bd187d98991f0cee221f15ec9adec11ecb02650dcd728dbd5c2d",
+          "phase": "response",
+          "provider": "opencode-go",
+          "model": "glm-5.3-flash",
+          "durationMs": 523.6144719999993,
+          "stopReason": "aborted",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0
+          },
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          },
+          "attempts": 1,
+          "usageComplete": false
+        }
+      ],
+      "verified": [],
+      "fallbacks": [
+        {
+          "session": "01a09454-01d7-750f-8bab-f65a0d18f120",
+          "toolCallId": "js-bash-57a89a4c-7c76-4749-93ff-9fb086263f02",
+          "targetId": "call_jciWO3YInCFRDJswan1yCMSU|fc_034617e7ee83d0fe016aa4f2b4250c87d08895faab63ad4b2d",
+          "sourceSha256": "987bafc8c424bd187d98991f0cee221f15ec9adec11ecb02650dcd728dbd5c2d",
+          "phase": "fallback",
+          "reason": "timeout"
+        }
+      ],
+      "seconds": [
+        13.636629935004748,
+        6.066308994995779
+      ]
+    },
+    {
+      "name": "cancel-real",
+      "contexts": [
+        [],
+        [
+          {
+            "id": "call_Akfladzcxvq5Cy0JAUew0HEr|fc_0be5a6ec54ab8517016aa4f2ca2ee887d0a9963d545c33efb9",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_Akfladzcxvq5Cy0JAUew0HEr|fc_0be5a6ec54ab8517016aa4f2ca2ee887d0a9963d545c33efb9",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ]
+      ],
+      "requests": 1,
+      "reducer": [
+        {
+          "session": "01a09454-4f45-7010-be7e-b288793083ae",
+          "toolCallId": "js-bash-785a2d32-9aa7-4849-82dd-6e5452519489",
+          "targetId": "call_Akfladzcxvq5Cy0JAUew0HEr|fc_0be5a6ec54ab8517016aa4f2ca2ee887d0a9963d545c33efb9",
+          "sourceSha256": "987bafc8c424bd187d98991f0cee221f15ec9adec11ecb02650dcd728dbd5c2d",
+          "phase": "response",
+          "provider": "opencode-go",
+          "model": "glm-5.3-flash",
+          "durationMs": 158.09884899999997,
+          "stopReason": "aborted",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0
+          },
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          },
+          "attempts": 1,
+          "usageComplete": false
+        }
+      ],
+      "verified": [],
+      "fallbacks": [
+        {
+          "session": "01a09454-4f45-7010-be7e-b288793083ae",
+          "toolCallId": "js-bash-785a2d32-9aa7-4849-82dd-6e5452519489",
+          "targetId": "call_Akfladzcxvq5Cy0JAUew0HEr|fc_0be5a6ec54ab8517016aa4f2ca2ee887d0a9963d545c33efb9",
+          "sourceSha256": "987bafc8c424bd187d98991f0cee221f15ec9adec11ecb02650dcd728dbd5c2d",
+          "phase": "fallback",
+          "reason": "cancelled"
+        }
+      ],
+      "seconds": [
+        5.4662255230068695
+      ],
+      "abortSeconds": 0.007686045006266795,
+      "abortReply": {
+        "id": "2",
+        "type": "response",
+        "command": "abort",
+        "success": true
+      }
+    },
+    {
+      "name": "failure-20-targets",
+      "contexts": [
+        [],
+        [
+          {
+            "id": "call_toQSFaXMhYpc2LHNEASoVajm|fc_046db1f3c5e505c1016aa4f2dd99e487d0b3bc2d581e06df9e",
+            "bytes": 13120,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_toQSFaXMhYpc2LHNEASoVajm|fc_046db1f3c5e505c1016aa4f2dd99e487d0b3bc2d581e06df9e",
+            "bytes": 13120,
+            "receipt": false,
+            "packed": false
+          }
+        ]
+      ],
+      "requests": 1,
+      "reducer": [
+        {
+          "session": "01a09454-9fa0-7684-be52-2d0210f62e88",
+          "toolCallId": "js-bash-06ee8820-6820-48d0-8429-3f865070dcf7",
+          "targetId": "call_toQSFaXMhYpc2LHNEASoVajm|fc_046db1f3c5e505c1016aa4f2dd99e487d0b3bc2d581e06df9e",
+          "sourceSha256": "a2cd4a23d8fab438885de8df7ebcf7db9fc2891b5266e151d107594bb329132f",
+          "phase": "response",
+          "provider": "opencode-go",
+          "model": "glm-5.3-flash",
+          "durationMs": 2832.887383000001,
+          "stopReason": "stop",
+          "usage": {
+            "input": 2855,
+            "output": 281,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 3136
+          },
+          "cost": {
+            "input": 0.000214125,
+            "output": 7.025e-05,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0.000284375
+          },
+          "attempts": 1,
+          "usageComplete": true
+        }
+      ],
+      "verified": [],
+      "fallbacks": [
+        {
+          "session": "01a09454-9fa0-7684-be52-2d0210f62e88",
+          "toolCallId": "js-bash-06ee8820-6820-48d0-8429-3f865070dcf7",
+          "targetId": "call_toQSFaXMhYpc2LHNEASoVajm|fc_046db1f3c5e505c1016aa4f2dd99e487d0b3bc2d581e06df9e",
+          "sourceSha256": "a2cd4a23d8fab438885de8df7ebcf7db9fc2891b5266e151d107594bb329132f",
+          "phase": "fallback",
+          "reason": "invalid-json"
+        }
+      ],
+      "seconds": [
+        18.881108724002843,
+        7.983649761008564
+      ]
+    },
+    {
+      "name": "failure-single",
+      "contexts": [
+        [],
+        [
+          {
+            "id": "call_j2mJVKFK9io3jt6HexNJ0YNL|fc_0409fb2b73da4fd5016aa4f30ed70087d0be50c043321225e3",
+            "bytes": 13214,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_j2mJVKFK9io3jt6HexNJ0YNL|fc_0409fb2b73da4fd5016aa4f30ed70087d0be50c043321225e3",
+            "bytes": 1515,
+            "receipt": true,
+            "packed": false
+          }
+        ]
+      ],
+      "requests": 1,
+      "reducer": [
+        {
+          "session": "01a09455-6045-7087-96aa-b8a7d0f564ba",
+          "toolCallId": "js-bash-761fe908-90da-4a98-ac09-2c243694d8df",
+          "targetId": "call_j2mJVKFK9io3jt6HexNJ0YNL|fc_0409fb2b73da4fd5016aa4f30ed70087d0be50c043321225e3",
+          "sourceSha256": "7c1d4ee352053a630fda2bd3509770366d513da8d52e7634b388422755937e45",
+          "phase": "response",
+          "provider": "opencode-go",
+          "model": "glm-5.3-flash",
+          "durationMs": 7568.731168,
+          "stopReason": "stop",
+          "usage": {
+            "input": 2891,
+            "output": 150,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 3041
+          },
+          "cost": {
+            "input": 0.000216825,
+            "output": 3.75e-05,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0.000254325
+          },
+          "attempts": 1,
+          "usageComplete": true
+        }
+      ],
+      "verified": [
+        {
+          "session": "01a09455-6045-7087-96aa-b8a7d0f564ba",
+          "toolCallId": "js-bash-761fe908-90da-4a98-ac09-2c243694d8df",
+          "targetId": "call_j2mJVKFK9io3jt6HexNJ0YNL|fc_0409fb2b73da4fd5016aa4f30ed70087d0be50c043321225e3",
+          "sourceSha256": "7c1d4ee352053a630fda2bd3509770366d513da8d52e7634b388422755937e45",
+          "phase": "verified",
+          "sourceBytes": 13214,
+          "receiptBytes": 1515,
+          "status": "failure",
+          "uncertain": false,
+          "evidence": [
+            {
+              "kind": "warning",
+              "line": 43,
+              "quote": "WARNING optional export target skipped: coverage excludes export worker",
+              "quoteSha256": "6e94ed0c441850b1c16e587b81615fede7bba8c08a7eca43faaaf929454af592"
+            },
+            {
+              "kind": "summary",
+              "line": 121,
+              "quote": "SUMMARY unit checks 237 passed; no claim about integration coverage",
+              "quoteSha256": "17818f0634ade6aaa4d74de631054bd8b65f09bb0f5845d409ef03ae6e96b7d0"
+            },
+            {
+              "kind": "failure",
+              "line": 161,
+              "quote": "ERROR target core_arithmetic FAILED: expected 4, got 5",
+              "quoteSha256": "c59143b206f59542f48ba0df73684f80b5e0e2fbff1d8d48dc76869a5bed4210"
+            },
+            {
+              "kind": "summary",
+              "line": 167,
+              "quote": "Command exited with code 7",
+              "quoteSha256": "8a9fce5cd7c72d62b31e7f8c1d3aa2ce0f39fb10dec46cd1c5d15274cdff1ba2"
+            }
+          ]
+        }
+      ],
+      "fallbacks": [],
+      "seconds": [
+        22.435114399995655,
+        9.602179891997366
+      ]
+    },
+    {
+      "name": "resume-readback",
+      "contexts": [
+        [
+          {
+            "id": "call_KlUTt2YFoA3stGg5P4K4Ly95|fc_03cac2d4a05924d3016aa4f25cdec487d0b193fece837b908b",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_KlUTt2YFoA3stGg5P4K4Ly95|fc_03cac2d4a05924d3016aa4f25cdec487d0b193fece837b908b",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          },
+          {
+            "id": "call_BJSjEsrd7R7CuhELWwYBN21I|fc_0bb6889559e7a85b016aa4f3abb6c087d0894b4c604418cafd",
+            "bytes": 8035,
+            "receipt": false,
+            "packed": false
+          }
+        ]
+      ],
+      "requests": 0,
+      "reducer": [],
+      "verified": [],
+      "fallbacks": [],
+      "seconds": [
+        17.024464654008625
+      ]
+    },
+    {
+      "name": "provider-dns-failure",
+      "contexts": [
+        [],
+        [
+          {
+            "id": "call_tmBISNe4rh2ccFwtc3Lzuv6E|fc_0c6bd3e4e6e557f7016aa4f44c884c87d086860e4213d46d67",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_tmBISNe4rh2ccFwtc3Lzuv6E|fc_0c6bd3e4e6e557f7016aa4f44c884c87d086860e4213d46d67",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ]
+      ],
+      "requests": 1,
+      "reducer": [
+        {
+          "session": "01a0945a-3815-70af-8abd-fda8c426c2eb",
+          "toolCallId": "js-bash-14900ced-34a8-4066-983e-c2bc46555f09",
+          "targetId": "call_tmBISNe4rh2ccFwtc3Lzuv6E|fc_0c6bd3e4e6e557f7016aa4f44c884c87d086860e4213d46d67",
+          "sourceSha256": "987bafc8c424bd187d98991f0cee221f15ec9adec11ecb02650dcd728dbd5c2d",
+          "phase": "response",
+          "provider": "opencode-go",
+          "model": "glm-5.3-flash",
+          "durationMs": 15542.2922,
+          "stopReason": "error",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0
+          },
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          },
+          "attempts": 1,
+          "usageComplete": false
+        }
+      ],
+      "verified": [],
+      "fallbacks": [
+        {
+          "session": "01a0945a-3815-70af-8abd-fda8c426c2eb",
+          "toolCallId": "js-bash-14900ced-34a8-4066-983e-c2bc46555f09",
+          "targetId": "call_tmBISNe4rh2ccFwtc3Lzuv6E|fc_0c6bd3e4e6e557f7016aa4f44c884c87d086860e4213d46d67",
+          "sourceSha256": "987bafc8c424bd187d98991f0cee221f15ec9adec11ecb02650dcd728dbd5c2d",
+          "phase": "fallback",
+          "reason": "provider-error"
+        }
+      ],
+      "seconds": [
+        28.92633554500935,
+        7.7832748599903425
+      ]
+    },
+    {
+      "name": "final-normal-route",
+      "contexts": [
+        [],
+        [
+          {
+            "id": "call_TSGpV3IbsGSZLfgddEYQaGpz|fc_061f3534126cc875016aa4f471078c87d0ab97bb327444937b",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_TSGpV3IbsGSZLfgddEYQaGpz|fc_061f3534126cc875016aa4f471078c87d0ab97bb327444937b",
+            "bytes": 1534,
+            "receipt": true,
+            "packed": false
+          }
+        ]
+      ],
+      "requests": 1,
+      "reducer": [
+        {
+          "session": "01a0945a-c798-717f-9c0e-8e63462c883c",
+          "toolCallId": "js-bash-559aa7d2-5f5d-4db2-b113-df53bec7f146",
+          "targetId": "call_TSGpV3IbsGSZLfgddEYQaGpz|fc_061f3534126cc875016aa4f471078c87d0ab97bb327444937b",
+          "sourceSha256": "fedbbf2b6f48b6f71511670371f50130150af217118f1f325c2440c3ddda3e93",
+          "phase": "response",
+          "provider": "opencode-go",
+          "model": "glm-5.3-flash",
+          "durationMs": 2253.526301,
+          "stopReason": "stop",
+          "usage": {
+            "input": 4161,
+            "output": 143,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 4304
+          },
+          "cost": {
+            "input": 0.000312075,
+            "output": 3.575e-05,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0.00034782499999999996
+          },
+          "attempts": 1,
+          "usageComplete": true
+        }
+      ],
+      "verified": [
+        {
+          "session": "01a0945a-c798-717f-9c0e-8e63462c883c",
+          "toolCallId": "js-bash-559aa7d2-5f5d-4db2-b113-df53bec7f146",
+          "targetId": "call_TSGpV3IbsGSZLfgddEYQaGpz|fc_061f3534126cc875016aa4f471078c87d0ab97bb327444937b",
+          "sourceSha256": "fedbbf2b6f48b6f71511670371f50130150af217118f1f325c2440c3ddda3e93",
+          "phase": "verified",
+          "sourceBytes": 19957,
+          "receiptBytes": 1534,
+          "status": "success",
+          "uncertain": false,
+          "evidence": [
+            {
+              "kind": "summary",
+              "line": 203,
+              "quote": "SUMMARY unit checks 237 passed; no claim about integration coverage",
+              "quoteSha256": "17818f0634ade6aaa4d74de631054bd8b65f09bb0f5845d409ef03ae6e96b7d0"
+            },
+            {
+              "kind": "warning",
+              "line": 43,
+              "quote": "WARNING optional export target skipped: coverage excludes export worker",
+              "quoteSha256": "6e94ed0c441850b1c16e587b81615fede7bba8c08a7eca43faaaf929454af592"
+            },
+            {
+              "kind": "target",
+              "line": 123,
+              "quote": "TARGET integration smoke checks NOT RUN: requires external service",
+              "quoteSha256": "bcc10b020bb1fb615f82ee7e9ab65eacf9c89e083efc383f91a7a8cd5e4f5c8f"
+            },
+            {
+              "kind": "target",
+              "line": 2,
+              "quote": "npm notice run node synthetic.cjs",
+              "quoteSha256": "5ffe128a298664b899eb84992e5b14616efe3556c10f93f05af5690414b247b4"
+            }
+          ]
+        }
+      ],
+      "fallbacks": [],
+      "seconds": [
+        15.264719811995747,
+        6.573296026006574
+      ]
+    },
+    {
+      "name": "invalid-citation-host",
+      "contexts": [
+        [],
+        [
+          {
+            "id": "call_tOXsUFmae19PoC8a4dkhZGVx|fc_01e09ee1c8a061a2016aa4f4b9509087d0a034f05553bd5436",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_tOXsUFmae19PoC8a4dkhZGVx|fc_01e09ee1c8a061a2016aa4f4b9509087d0a034f05553bd5436",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ]
+      ],
+      "requests": 1,
+      "reducer": [
+        {
+          "session": "01a0945b-e3dd-770d-ad96-f7cf19d9a1f2",
+          "toolCallId": "js-bash-4bed70f7-aaac-4261-a9e1-194bc21a2d6b",
+          "targetId": "call_tOXsUFmae19PoC8a4dkhZGVx|fc_01e09ee1c8a061a2016aa4f4b9509087d0a034f05553bd5436",
+          "sourceSha256": "fedbbf2b6f48b6f71511670371f50130150af217118f1f325c2440c3ddda3e93",
+          "phase": "response",
+          "provider": "opencode-go",
+          "model": "glm-5.3-flash",
+          "durationMs": 15567.263159999999,
+          "stopReason": "error",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0
+          },
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          },
+          "attempts": 1,
+          "usageComplete": false
+        }
+      ],
+      "verified": [],
+      "fallbacks": [
+        {
+          "session": "01a0945b-e3dd-770d-ad96-f7cf19d9a1f2",
+          "toolCallId": "js-bash-4bed70f7-aaac-4261-a9e1-194bc21a2d6b",
+          "targetId": "call_tOXsUFmae19PoC8a4dkhZGVx|fc_01e09ee1c8a061a2016aa4f4b9509087d0a034f05553bd5436",
+          "sourceSha256": "fedbbf2b6f48b6f71511670371f50130150af217118f1f325c2440c3ddda3e93",
+          "phase": "fallback",
+          "reason": "provider-error"
+        }
+      ],
+      "seconds": [
+        27.740218680992257,
+        6.075125655988813
+      ]
+    },
+    {
+      "name": "invalid-citation-public-api",
+      "contexts": [
+        [],
+        [
+          {
+            "id": "call_1OFHdEYwApyYaG2RsKxqpNP1|fc_03c7dfdb424c93f6016aa4f5ed178087d0b83d986a796662f1",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_1OFHdEYwApyYaG2RsKxqpNP1|fc_03c7dfdb424c93f6016aa4f5ed178087d0b83d986a796662f1",
+            "bytes": 1401,
+            "receipt": true,
+            "packed": false
+          }
+        ]
+      ],
+      "requests": 1,
+      "reducer": [
+        {
+          "session": "01a09460-97fd-7665-a388-e40c9e09a00a",
+          "toolCallId": "js-bash-eb254947-34c9-4395-bcee-bcae7e5dea0e",
+          "targetId": "call_1OFHdEYwApyYaG2RsKxqpNP1|fc_03c7dfdb424c93f6016aa4f5ed178087d0b83d986a796662f1",
+          "sourceSha256": "e000c82ceef9ee17f2208251607c90a48caf947b493bc0f308e58c925ac7cee2",
+          "phase": "response",
+          "provider": "opencode-go",
+          "model": "glm-5.3-flash",
+          "durationMs": 2134.0247469999995,
+          "stopReason": "stop",
+          "usage": {
+            "input": 4157,
+            "output": 126,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 4283
+          },
+          "cost": {
+            "input": 0.000311775,
+            "output": 3.15e-05,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0.000343275
+          },
+          "attempts": 1,
+          "usageComplete": true
+        }
+      ],
+      "verified": [
+        {
+          "session": "01a09460-97fd-7665-a388-e40c9e09a00a",
+          "toolCallId": "js-bash-eb254947-34c9-4395-bcee-bcae7e5dea0e",
+          "targetId": "call_1OFHdEYwApyYaG2RsKxqpNP1|fc_03c7dfdb424c93f6016aa4f5ed178087d0b83d986a796662f1",
+          "sourceSha256": "e000c82ceef9ee17f2208251607c90a48caf947b493bc0f308e58c925ac7cee2",
+          "phase": "verified",
+          "sourceBytes": 19957,
+          "receiptBytes": 1401,
+          "status": "success",
+          "uncertain": true,
+          "evidence": [
+            {
+              "kind": "warning",
+              "line": 43,
+              "quote": "WARNING optional export target skipped: coverage excludes export worker",
+              "quoteSha256": "6e94ed0c441850b1c16e587b81615fede7bba8c08a7eca43faaaf929454af592"
+            },
+            {
+              "kind": "target",
+              "line": 123,
+              "quote": "TARGET integration smoke checks NOT RUN: requires external service",
+              "quoteSha256": "bcc10b020bb1fb615f82ee7e9ab65eacf9c89e083efc383f91a7a8cd5e4f5c8f"
+            },
+            {
+              "kind": "summary",
+              "line": 203,
+              "quote": "SUMMARY unit checks 237 passed; no claim about integration coverage",
+              "quoteSha256": "17818f0634ade6aaa4d74de631054bd8b65f09bb0f5845d409ef03ae6e96b7d0"
+            }
+          ]
+        }
+      ],
+      "fallbacks": [],
+      "seconds": [
+        14.066336406001938,
+        6.267793649996747
+      ]
+    },
+    {
+      "name": "invalid-citation-boundary",
+      "contexts": [
+        [],
+        [
+          {
+            "id": "call_MSgaLrhwX1tdjbjerZ8a6N9f|fc_055e4e180789f8d8016aa4f65a901087d0977ddb4c24500b06",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ],
+        [
+          {
+            "id": "call_MSgaLrhwX1tdjbjerZ8a6N9f|fc_055e4e180789f8d8016aa4f65a901087d0977ddb4c24500b06",
+            "bytes": 19957,
+            "receipt": false,
+            "packed": false
+          }
+        ]
+      ],
+      "requests": 1,
+      "reducer": [
+        {
+          "session": "01a09462-4142-756e-9474-76b4c1405145",
+          "toolCallId": "js-bash-1b9d1be0-a975-49f4-b351-9dfce9fb05c5",
+          "targetId": "call_MSgaLrhwX1tdjbjerZ8a6N9f|fc_055e4e180789f8d8016aa4f65a901087d0977ddb4c24500b06",
+          "sourceSha256": "fedbbf2b6f48b6f71511670371f50130150af217118f1f325c2440c3ddda3e93",
+          "phase": "response",
+          "provider": "opencode-go",
+          "model": "glm-5.3-flash",
+          "durationMs": 2667.7832930000004,
+          "stopReason": "stop",
+          "usage": {
+            "input": 4161,
+            "output": 129,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 4290
+          },
+          "cost": {
+            "input": 0.000312075,
+            "output": 3.225e-05,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0.000344325
+          },
+          "attempts": 1,
+          "usageComplete": true
+        }
+      ],
+      "verified": [],
+      "fallbacks": [
+        {
+          "session": "01a09462-4142-756e-9474-76b4c1405145",
+          "toolCallId": "js-bash-1b9d1be0-a975-49f4-b351-9dfce9fb05c5",
+          "targetId": "call_MSgaLrhwX1tdjbjerZ8a6N9f|fc_055e4e180789f8d8016aa4f65a901087d0977ddb4c24500b06",
+          "sourceSha256": "fedbbf2b6f48b6f71511670371f50130150af217118f1f325c2440c3ddda3e93",
+          "phase": "fallback",
+          "reason": "unverifiable-quote"
+        }
+      ],
+      "seconds": [
+        6.481850929005304
+      ]
+    }
+  ],
+  "limitations": [
+    "Reducer executes at public session_stop; first foreground read unchanged; no automatic continuation or background jobs.",
+    "Usage from aborted/error streams is incomplete. Reported zeros are not a zero-cost claim. Physical HTTP/auth retries without a completed model response are not exposed as separate model completions.",
+    "Failure-20-targets yielded invalid JSON and retained original. Source is the actual inline OMP observation, not all pre-truncation stdout.",
+    "Accepted sample receipts omitted no audited task-critical warning/target/summary/error lines; cannot prove general summary completeness or correctness of model-assigned evidence kinds.",
+    "No business logs, live service outage, branch navigation, compact combination, Windows or other host versions were validated.",
+    "Dependency security audit remains FAIL: 3 unresolved high advisories. No dependency upgrades or new audit PASS."
+  ],
+  "initialFailures": [
+    "Initial tsc prompt string incompatible with OMP string[] contract; fixed before checks passed.",
+    "Full object display was truncated by native eval; exact source correlation failed. Original retained, no reducer request. Later raw-text display succeeds; not treated as an E2E pass.",
+    "FAIL fault harness: API-only registration did not change built-in model API; .invalid endpoint produced provider-error instead of intended quote fault.",
+    "FAIL fixture loading: public model registration required apiKey/oauth. Process exit 1, no model calls. Did not inject a fake key or copy credentials.",
+    "FAIL fault harness: custom API registration did not replace built-in provider transport. A real normal reducer response was verified; all actual usage counted, not a quote-fault pass.",
+    "PASS after correcting driver synchronization: real approved model response deliberately corrupted before production validation; unverifiable-quote and full Context retained. Initial next prompt was rejected while host processing; wait for agent_end fixed driver.",
+    "Final explicit-null timeout regression first failed (6 pass/1 fail), then parser defaulting was corrected; full 59-test suite passed."
+  ],
+  "privateEvidenceRoot": "/tmp/sol-omp-epr-runtime-xf8oonnb",
+  "finalChecks": {
+    "typecheck": "PASS",
+    "unitTests": {
+      "pass": 59,
+      "fail": 0
+    },
+    "npmHostSmoke": "PASS load/shutdown only",
+    "standaloneUserPluginLoad": "PASS no prompt, configured EPR route loaded, main gpt-6-astra/high, exit0",
+    "securityAudit": "FAIL retained: 3 unresolved high advisories"
+  }
+}

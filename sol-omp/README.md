@@ -1,8 +1,8 @@
-# sol-omp — ObservationPack MVP
+# sol-omp — Evidence-Preserving Reducer + ObservationPack
 
-在独立 `sol-omp/` 中将 NVIDIA SoL-Pi 的 ObservationPack 接入 OMP，不修改原版 SoL-Pi 或 OMP core。用户任务原文见 [实施计划](docs/implementation-plan-mvp.md)，实际结果见 [验证报告](docs/validation-report.md)。
+在独立 `sol-omp/` 中将 NVIDIA SoL-Pi 的 Evidence-Preserving Reducer 与 ObservationPack 接入 OMP，不修改原版 SoL-Pi 或 OMP core。用户任务原文见 [实施计划](docs/implementation-plan-mvp.md)，实际结果见 [验证报告](docs/validation-report.md)。
 
-**功能边界：** 已实现观察归档、延迟占位、分页恢复和严格用户级配置。2026-09-12 已在 Linux/WSL2、OMP 18.1.18 独立二进制、真实 `openai-codex/gpt-6-astra` 会话中验证打包、逐字节恢复、同 session 进程重启及关闭打包后恢复旧引用。Action Fusion 尚未实现，保持关闭；Reducer 与 Online Context Compact 未移植。这不等于上游四项机制全部通过。
+**功能边界：** 已实现观察归档、延迟占位、分页恢复和严格用户级配置。2026-09-12 已在 Linux/WSL2、OMP 18.1.18 独立二进制、真实 `openai-codex/gpt-6-astra` 会话中验证打包、逐字节恢复、同 session 进程重启及关闭打包后恢复旧引用。Evidence-Preserving Reducer 已在同一宿主通过真实合成日志、辅助模型、receipt 校验和后续 Context 投影验证。Action Fusion 保持关闭；Online Context Compact 未移植。这不等于上游四项机制全部通过。
 
 ## 固定环境
 
@@ -11,7 +11,7 @@
 - Bun：`1.3.14`。CI 使用 GitHub Actions `ubuntu-22.04` Linux runner；另在 Node `22.16.0` 运行 36 项单元测试。
 - 支持声明仅限验证报告中实际通过的范围，不泛称支持 `>=18.x` 或 Windows。
 
-`upstream.lock.json` 保留初次实现的来源和 CI 验证基线，不是依赖解析锁或当前安装报告。2026-09-12 本地现有、未提交的 `bun.lock` 已通过 `bun install --frozen-lockfile --ignore-scripts`，没有改写该锁；新的 clone 仍需自行取得依赖锁。当前安装和实测数据见 [验证报告](docs/validation-report.md)。
+`upstream.lock.json` 保留来源、适配文件校验值和分阶段验证记录，不是依赖解析锁。`bun.lock` 是已提交的依赖锁；使用下述 frozen 命令复现依赖。当前安装和实测数据见 [验证报告](docs/validation-report.md)。
 
 ## 安装与检查
 
@@ -53,7 +53,7 @@ bun "$SOL_OMP_ROOT/node_modules/.bin/omp" \
   --extension "$SOL_OMP_ROOT/src/index.ts"
 ```
 
-使用非默认 profile 时保留相应 `--profile` 参数。session_start 日志将打印实际配置路径：
+使用非默认 profile 时保留相应 `--profile` 参数。`session_start` 在交互模式通过公开 `ctx.ui.notify` 显示加载信息和实际配置路径，不直接写 stderr，以免打断输入区域；无 UI 的 RPC/print 模式仍将诊断写入 stderr。启用 EPR 时，交互模式另显示 warning 级通知，保留辅助路由、诊断日志外发、额外供应商用量及 `session_stop` 运行时机的提醒；无 UI 时同样保留该提醒。加载信息示例：
 
 ```text
 [sol-omp] loaded observationPack=false actionFusion=false config=<实际路径>/sol-omp.json
@@ -69,9 +69,9 @@ bun "$SOL_OMP_ROOT/node_modules/.bin/omp" \
 }
 ```
 
-路径来自公开 `api.pi.getAgentDir()`，尊重当前 profile/宿主目录设置，不硬编码 home、不读取项目级配置。插件不会自动创建或改写用户配置。配置缺失时开关默认 false；已有文件必须有 `version: 1`，未知字段、非布尔值、无效 JSON 均报错。改配置后重启 OMP，本次不做热更新。
+路径来自公开 `api.pi.getAgentDir()`，尊重当前 profile/宿主目录设置，不硬编码 home、不读取项目级配置。插件不会自动创建或改写用户配置。配置缺失时功能开关默认 false；已有文件必须有 `version: 1`，未知字段、非布尔值、无效 JSON 均报错。Reducer 开启还必须显式提供非空 provider/model；可选超时只能为 1–90000 的整数毫秒。改配置后重启 OMP，本次不做热更新。
 
-关闭打包后不注册 Context hook，但仍保留只读 `obs_recall` 以恢复已有引用。不覆盖 edit/write。`actionFusion: true` 会在注册任何工具和事件前明确报错；改回 false 后才能加载本阶段插件。
+同时关闭 ObservationPack 与 Reducer 后不注册 Context hook，但仍保留只读 `obs_recall` 以恢复已有引用。不覆盖 edit/write。`actionFusion: true` 会在注册任何工具和事件前明确报错；改回 false 后才能加载本阶段插件。
 
 ## 观察规则和存储
 
@@ -109,6 +109,44 @@ omp --extension "$SOL_OMP_ROOT/tests/fixtures/model-observation.ts"
 必须保留实际 `SOL_OMP_MODEL_CONTEXT` 中大于阈值的观察、早期全文/后期占位、真实 recall 调用及分页结果，以及会话原文未覆盖的证据。模型答对标记不等于验证通过。随后退出并恢复同一 session，验证同 id 能读取；关闭打包后重启，验证不再产生新占位而旧引用仍能恢复。测试 fixture 只提供证据，不自动宣告 MODEL_E2E=PASS。
 
 对照只切换 ObservationPack，保留 `obs_recall` 工具及原有权限/插件；这不是卸载扩展的纯原生 OMP 大规模基准。同样 8 次模型响应中，观察重放累计字节减少 68.5%，宿主报告累计 token 减少 25.6%。但追加强制完整回读后，该轮累计 token 增加 4.0%、宿主标价估算增加 37.0%；不是实付账单或普遍省钱承诺。适合旧观察较少再被完整读取的场景，按需分页，勿为了“验证使用”在每次正常任务中完整回读。
+
+## Evidence-Preserving Reducer：配置、外发与运行边界
+
+本轮用户确认的路由为 **`opencode-go/glm-5.3-flash`**。当前用户级 `/home/carter003/.omp/agent/sol-omp.json` 已启用；普通新 OMP 主会话自动加载，已有进程须重启。只对合成日志做过验证，未发送业务日志。配置示例：
+
+```json
+{
+  "version": 1,
+  "observationPack": true,
+  "actionFusion": false,
+  "evidencePreservingReducer": true,
+  "evidencePreservingReducerProvider": "opencode-go",
+  "evidencePreservingReducerModel": "glm-5.3-flash"
+}
+```
+
+关闭时只将 `evidencePreservingReducer` 改为 `false` 并重启；保留模型字段无妨。不要调整原生 Code Mode、主模型或 `actionFusion` 来代替这个开关。配置超时默认 90000 ms，可用 `evidencePreservingReducerTimeoutMs` 调小。生命周期补修后，整个 settle 队列另受 `min(25000 ms, 配置超时)` 的共享预算约束，为 OMP 18.1.18 的 30 秒 handler 预算预留取消清理时间；预算耗尽保留原文、不接受迟到 receipt、不重试。该余量不保证不响应取消的供应商或卡死 I/O 能按时退出。启用开关不是“合成数据沙箱”：将来符合条件的业务诊断日志也会发送到该路由；若仍仅允许合成数据，进入业务工作前先关闭。
+
+**外发和费用：** 辅助请求包含日志全文、命令 hash、来源 hash、大小、行数及失败状态，不带完整会话或明文命令。日志本身可能含代码或凭证；沿用上游的疑似敏感内容过滤只是保守启发式，不保证检出全部秘密。凭证只由 OMP 公开认证 API 在请求中解析，不复制认证文件、不持久化密钥、不用私有会话接口。当前宿主目录标价为输入 $0.075、输出 $0.25、cache read $0.015／百万 token；模型另标注“2x usage”，订阅额度与美元估算不同。不是免费能力或账单承诺。辅助调用不自动进入前台 `get_session_stats`；须另加 stderr 的 `SOL_OMP_EPR` response 中 attempts、usage、cost 和 durationMs。`usageComplete=false` 的错误/取消请求不能按零成本结算。
+
+**时序：** OMP 18.1.18 的 `tool_result` / `context` 没有公开取消 signal，因此这里只收集候选；在公开 `session_stop.signal` 下依次等待辅助请求，不创建后台任务或自动续跑。首轮主模型仍读全文，receipt 从后续 Context 开始使用；不能减少首次读取或同一尚未结束长任务内的读取。宿主不向子代理发出该 settle hook，子代理不承诺 reducer 调用；没 receipt 就保留原文。
+
+**候选：** 沿用锁定上游的诊断命令正则、至少 4096 字节、最多 600000 字符、最多 2048 输出 token、12 条逐字引用、每条最多 600 字符。只处理实际观察到的纯文本 native bash 结果；支持 native eval 内 bash，但必须能唯一关联外层调用，并在外层完整观察里找到原文的唯一精确文本或 JSON 转义形式。并发父调用歧义、被 eval 截断/重新格式化的结果均保留，不把 native eval 当成 `then_run`。
+
+**失败与组合：** 不返回任何 `tool_result` 改写。除事件布尔值外，还检查实际 `exitCode`、details 错误/超时状态和明确的宿主失败尾注；矛盾的成功状态保守回退。已确认失败日志可以形成 `status=failure` receipt，原消息错误字段保持不变。模型失败、超时、取消、可疑内容、归档/引用/状态校验失败都保留原文；ObservationPack 不得再次打包这些回退或已验证 receipt。重启后无缓存 receipt 的 bash/eval 也保守保留全文，其他观察仍按 ObservationPack 规则处理。
+
+**存储与恢复：**
+
+```text
+<ctx.sessionManager.getSessionDir()>/sol-omp/<session-id>/
+  evidence-preserving-reducer/objects/<hash前2位>/<完整SHA256>.txt
+```
+
+归档是 OMP 实际交给扩展的完整观察文本；不是工具截断前的全部 stdout。此适配不读取 Pi 临时文件或猜测 OMP artifact 私有路径。文件 `0600`，目录 `0700`；新文件 fsync 后才使用，已有对象逐字节/hash 校验，Context 使用前也复核归档。原会话不改写；关闭、重启或卸载不删除归档。按 receipt 的 `source_artifact` 用原生 `read` 加明确行范围读取；已验证退出后恢复同一 session 能完整读回。引用真实不代表摘要完整，证据分类也不是语义证明；诊断、修复和最终通过判定仍由主模型负责。
+
+**本轮收益：** 在 ObservationPack 已开启的三对短任务中，前台 token −5.55%，但加上 3 次 reducer 后总 token **+2.59%**、标价估算 **+29.29%**、累计耗时 **+8.91%**。累计观察重放字节 −44.68%。这组样本没有总体省钱或提速收益；适合性取决于后续重放次数、缓存与回读需求。完整调用/故障/费用见 [验证报告](docs/validation-report.md) 和 [本轮结构化证据](docs/epr-comparison-2026-09-12.json)。
+
+复现：在没有业务文件的临时 npm 项目中生成合成诊断输出，执行 `npm test`，随后发送两个不调用工具的证据复核问题；两组仅切换 reducer。数据文件保留完整测试脚本及三个相同提示词。Code Mode 应 `display(result.text)`；直接打印巨大的结果对象可能先被宿主截断，适配会拒绝用完整日志的 receipt 替换无法精确对应的投影。
 
 ## OMP 原生 eval 顺序融合（独立替代方案）
 

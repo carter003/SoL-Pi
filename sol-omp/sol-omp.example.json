@@ -1,5 +1,6 @@
 {
   "version": 1,
   "observationPack": true,
-  "actionFusion": false
+  "actionFusion": false,
+  "evidencePreservingReducer": false
 }

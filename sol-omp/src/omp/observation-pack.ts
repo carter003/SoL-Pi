@@ -64,6 +64,7 @@ export class ObservationPack {
     messages: AgentMessage[],
     root: string,
     warn: (message: string) => void = message => console.error(message),
+    retained?: ReadonlySet<AgentMessage>,
   ): Promise<AgentMessage[]> {
     const projected = [...messages];
     const priorAssistantCounts = new Array<number>(messages.length);
@@ -76,7 +77,7 @@ export class ObservationPack {
     const countsForThisProjection = new Map<string, number>();
     for (let index = 0; index < messages.length; index++) {
       const message = messages[index];
-      if (!message || !isPureTextResult(message)) continue;
+      if (!message || retained?.has(message) || !isPureTextResult(message)) continue;
       try {
         const observation = createObservation(message, root);
         if (!observation) continue;
@@ -127,7 +128,9 @@ export class ObservationPack {
   }
 }
 
-export function registerObservationPack(api: ExtensionAPI, enabled: boolean): void {
+export function registerObservationPack(api: ExtensionAPI, enabled: boolean, reducer?: {
+  project(messages: AgentMessage[], root: string): Promise<{ messages: AgentMessage[]; retained: Set<AgentMessage> }>;
+}): void {
   const pack = new ObservationPack();
   const { Type } = api.typebox;
   api.registerTool({
@@ -145,7 +148,7 @@ export function registerObservationPack(api: ExtensionAPI, enabled: boolean): vo
     },
   });
   // Retain read-only recall when disabled; do NOT install a context hook.
-  if (!enabled) return;
+  if (!enabled && !reducer) return;
   api.on("context", async (event, ctx) => {
     let root: string;
     try {
@@ -155,6 +158,8 @@ export function registerObservationPack(api: ExtensionAPI, enabled: boolean): vo
       console.error(`[sol-omp] original context retained: ${reason}`);
       return { messages: [...event.messages] };
     }
-    return { messages: await pack.project(event.messages, root) };
+    const reduced = await reducer?.project(event.messages, root);
+    const messages = reduced?.messages ?? event.messages;
+    return { messages: enabled ? await pack.project(messages, root, undefined, reduced?.retained) : messages };
   });
 }

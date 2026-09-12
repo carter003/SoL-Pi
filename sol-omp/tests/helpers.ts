@@ -29,9 +29,9 @@ export function toolText(message: AgentMessage): string {
   return content.filter(block => block.type === "text").map(block => block.text).join("\n");
 }
 
-export function sessionContext(directory: string, id = "session-a"): ExtensionContext {
+export function sessionContext(directory: string, id = "session-a", overrides: Record<string, unknown> = {}): ExtensionContext {
   // Deliberately a unit-test double, NOT an OMP session or compatibility proof.
-  return { sessionManager: { getSessionDir: () => directory, getSessionId: () => id } } as unknown as ExtensionContext;
+  return { sessionManager: { getSessionDir: () => directory, getSessionId: () => id, ...overrides } } as unknown as ExtensionContext;
 }
 
 export async function fakeApi(t: TestContext) {

@@ -9,7 +9,7 @@ import { temporary } from "./helpers.ts";
  test("configuration defaults every absent feature to false and freezes the result", () => {
   assert.deepEqual(parseConfig('{"version":1}'), DEFAULT_CONFIG);
   assert.deepEqual(parseConfig('{"version":1,"observationPack":true}'), {
-    version: 1, observationPack: true, actionFusion: false,
+    ...DEFAULT_CONFIG, observationPack: true,
   });
   assert.equal(Object.isFrozen(DEFAULT_CONFIG), true);
   assert.equal(Object.isFrozen(parseConfig('{"version":1}')), true);
@@ -18,7 +18,7 @@ import { temporary } from "./helpers.ts";
  test("configuration rejects malformed JSON, wrong version, unknown keys and non-booleans", () => {
   const invalid = ["", "{", "null", "[]", "1", '"value"', "{}", '{"version":2}',
     '{"version":"1"}', '{"version":1,"onlineContextCompact":true}',
-    '{"version":1,"evidencePreservingReducer":false}', '{"version":1,"observationPack":null}',
+    '{"version":1,"evidencePreservingReducer":true}', '{"version":1,"observationPack":null}',
     '{"version":1,"actionFusion":0}', '{"version":1,"observationPack":"true"}',
     '{"version":1,"__proto__":{}}'];
   for (const text of invalid) assert.throws(() => parseConfig(text), Error, text);

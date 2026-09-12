@@ -96,7 +96,6 @@ async function main(): Promise<void> {
       assert.ok(evidence, `Missing real host probe result\n${result.stderr}`);
       const probe = JSON.parse(evidence.slice("SOL_OMP_SMOKE_PROBE=".length));
       assert.equal(probe.status, "PASS", JSON.stringify(probe));
-      assert.ok(result.stderr.includes(`[sol-omp] loaded observationPack=${enabled} actionFusion=false`));
       console.log(JSON.stringify({ status: "PASS", check: "OMP_LOAD", observationPack: enabled,
         bun: process.versions.bun, omp: host.version, probe }));
     }

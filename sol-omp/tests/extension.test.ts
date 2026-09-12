@@ -7,13 +7,49 @@ import { ObservationPack, runtimeRoot } from "../src/omp/observation-pack.ts";
 import { createObservation, isPureTextResult } from "../src/upstream/sol-pi/observation-pack/observation.ts";
 import { fakeApi, sessionContext, toolMessage, toolText } from "./helpers.ts";
 
+test("startup notices use the UI without terminal writes and retain headless diagnostics", async t => {
+  const fake = await fakeApi(t);
+  const file = join(fake.agent, "sol-omp.json");
+  await writeFile(file, JSON.stringify({ version: 1, evidencePreservingReducer: true,
+    evidencePreservingReducerProvider: "test-provider", evidencePreservingReducerModel: "test-model" }));
+  await solOmp(fake.api);
+  const start = fake.handlers.get("session_start")!;
+  const notices: { message: string; type: string }[] = [];
+  const stderr: unknown[][] = [];
+  const originalError = console.error;
+  console.error = (...args: unknown[]) => { stderr.push(args); };
+  try {
+    await start({ type: "session_start" }, { hasUI: true, ui: {
+      notify: (message: string, type: string) => notices.push({ message, type }),
+    } });
+    assert.deepEqual(stderr, [], "interactive startup must not write over the editor");
+    assert.deepEqual(notices.map(notice => notice.type), ["info", "warning"]);
+    assert.ok(notices[0]!.message.includes(file), "show the effective configuration path");
+    assert.ok(notices[1]!.message.includes("test-provider/test-model"), "identify the external reducer route");
+    await start({ type: "session_start" }, { hasUI: false, ui: {
+      notify: () => assert.fail("headless diagnostics must not use the no-op UI"),
+    } });
+    assert.deepEqual(stderr, notices.map(notice => [notice.message]));
+  } finally {
+    console.error = originalError;
+  }
+});
+
+test("startup does not warn about external reducer usage when it is disabled", async t => {
+  const fake = await fakeApi(t); await solOmp(fake.api);
+  const notices: string[] = [];
+  await fake.handlers.get("session_start")!({ type: "session_start" }, { hasUI: true, ui: {
+    notify: (_message: string, type: string) => notices.push(type),
+  } });
+  assert.deepEqual(notices, ["info"]);
+});
+
  test("fake-API unit test: defaults register only read-only recall, not projection or native overrides", async t => {
   const fake = await fakeApi(t); await solOmp(fake.api);
   assert.deepEqual(fake.tools.map(tool => tool.name), ["obs_recall"]);
   assert.equal(fake.tools[0]!.approval, "read");
   assert.equal(fake.tools[0]!.loadMode, "essential");
   assert.equal(fake.handlers.has("context"), false);
-  assert.equal(fake.handlers.has("session_start"), true);
   assert.equal(fake.execCalls(), 0);
 });
 

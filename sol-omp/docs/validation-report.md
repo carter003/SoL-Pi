@@ -1,5 +1,97 @@
 # sol-omp 验证报告
 
+## 当前可复现快照收口
+
+日期：2026-09-12。当前运行源码、测试、来源锁和 `bun.lock` 已纳入同一 Git 快照；用户级 OMP 链接继续指向该 checkout，不再依赖未跟踪运行文件。`bun install --frozen-lockfile --ignore-scripts` 无变更，`bun run typecheck` PASS，`bun test` 70 pass / 0 fail，`bun run smoke` PASS。`upstream.lock.json` 中当前本地文件校验值已复核。安全审计仍为 3 项 high、FAIL；本节不覆盖下方各轮历史测试计数和当时状态。
+
+## Evidence-Preserving Reducer：本轮实现、启用和真实验证
+
+日期：2026-09-12。起点 commit `eea74a7d410f7d7b016413760fabff4afc2c7759`，`main`；起点仅有既存未跟踪 `sol-omp/bun.lock`。**结论：实现、指定路由配置及以下真实功能链路 PASS；本组合的总体省钱/提速未达到，安全审计仍 FAIL。**
+
+### 范围、路由和启用状态
+
+- 已读取根 AGENTS、完整 agents-install.md、适配 AGENTS、README、实施计划第 9 节、来源锁及历史验证。按 OMP 适配范围执行，不安装原版 Pi，不修改原版运行源码或 OMP core/node_modules。
+- Linux/WSL2，Node 24.15.0、Bun 1.3.14、OMP 18.1.18。真实独立宿主仍为既有 OMP，扩展经用户级链接自动加载；固定 npm 宿主另做无模型加载 smoke。
+- 主模型始终 `openai-codex/gpt-6-astra`，high；ObservationPack=true；原生 `providers.openai-codex.codeMode=on`、`bash.autoBackground.enabled=false` 不变；`sol-omp.actionFusion=false`，没有 then_run。
+- 先通过 `omp models ls --json` 与真实无提示词宿主探针检查公开模型列表/认证可用性，说明日志全文外发及额外费用。用户选择 **`opencode-go/glm-5.3-flash`**。之后才启用并发送合成日志。没有输出或复制凭证，没有修改主模型认证或权限策略。
+- 当前用户级 `/home/carter003/.omp/agent/sol-omp.json`：`version=1, observationPack=true, actionFusion=false, evidencePreservingReducer=true, provider=opencode-go, model=glm-5.3-flash`（provider/model 对应完整 EPR 字段名）。默认 timeout=90000 ms。测试用 500 ms 配置已恢复；故障路由仅存在于隔离进程，退出后失效。新会话自动生效，已有进程需重启。
+- 初期只测试 `/tmp/sol-omp-epr-runtime-xf8oonnb/project/` 的合成 npm/Node 日志；未发送业务日志。全局开关不是合成数据过滤器，未来业务主会话也会按规则外发诊断日志；仍需合成限定时，应在进入业务项目之前关闭。
+
+### 公开接口与实现判定
+
+| 项目 | 状态 | 证据/边界 |
+|---|---|---|
+| 锁定上游复用 | PASS | 同一 `d7ecfc...`；config/候选判断/hash/归档/逐字 receipt 校验；六项 blob/本地 SHA256 见来源锁 |
+| 原会话保留 | PASS | 原始 toolResult 逐字包含完整已收到日志；Context receipt 未写回 session；没有 tool_result 返回改写 |
+| Context 投影 | PASS | 先校验归档、来源 hash、状态及每条引用；重复投影仅用内存 receipt；原消息字段保留 |
+| 去重和取消 | PASS | session root + 工具调用 ID + 内容 hash；失败/取消也标 attempted；重复 settle/context 无第二次辅助调用 |
+| 原生工具/权限 | PASS（未改动路径） | 未重注册 bash/edit/write/eval；原生 eval 内 bash 保持正常审批和 tool_call 流程，无新命令执行器 |
+| 认证/模型调用 | PASS | `ModelRegistry.find`、带 signal 的 `getApiKey` 请求内回调、公开 `pi-ai.completeSimple`，真实选定路由完成 |
+| 取消信号差异 | PASS（有意适配） | 真实 probe：context 无 signal、registry 无 complete；使用公开 `session_stop.signal`，不伪造上下文 signal |
+| 首轮读取节省 | NOT_RUN / 不提供 | 受取消边界约束，首轮主模型已读全文后才 reducer；不自动续跑，同一长任务尚未 settle 时不压缩 |
+| 子代理、分支导航、Compact 组合 | NOT_RUN | 子代理不发 session_stop；缺 receipt 保留原文，不宣称这些组合有收益 |
+
+OMP `registry.resolver` 在锁定版初次认证未传 signal，因此没有照搬它或复制认证轮换策略；使用公开 `getApiKey(model, sessionId, {signal})`。超时清理与父取消均覆盖认证等待和模型请求，不使用脱离生命周期的 Promise.race/background job。
+
+### 真实模型和负向场景
+
+| 场景 | 状态 | 真实观察 |
+|---|---|---|
+| 大日志 → 归档 → 辅助模型 → 校验 → Context | **PASS（真实模型 E2E）** | native npm test，实际 19,957 字节；真实 GLM receipt 约 1.4–1.6 KB；下一次主模型请求使用 receipt |
+| 引用真实与原文恢复 | PASS | 来源与归档字节一致、SHA256 一致、每条 quote/quote hash 均验证；文件 0600；退出后恢复同一 session，通过一次真实 native read 完整读回 19,957 字节，未新增 reducer 调用 |
+| 错误状态不依赖 event.isError | PASS | 真正 npm test exit 7，但 bash/eval tool_result 顶层 false；details.exitCode=7 和失败尾注保持；单失败日志接受的 receipt 为 **failure**，原结果未被改写为成功 |
+| 真实 provider 传输失败 | PASS（进程级故障注入） | 公开 provider URL override 到 RFC `.invalid` 保留同一路由，实际 provider 请求返回 error；约 15.54 s 后回退；下一 Context 全文，辅助请求仅一次；不声称远端服务真的宕机 |
+| Reducer 500 ms 超时 | PASS（真实宿主/所选路由） | helper 约 523.6 ms 返回 aborted，fallback=timeout；下一 Context 19,957 字节，无 receipt/OP 占位、无重试 |
+| Reducer 调用中取消 | PASS（真实 RPC abort） | 观察 helper request 后发 abort；约 7.7 ms 观察到回退，helper 总耗时约 158.1 ms；下一 Context 原文，无重试。不能据此证明供应商未计费 |
+| 无效逐字引用 | PASS（真实返回后边界注入） | 真正调用所选模型，再在校验前将引用替换为不存在的字符串；生产校验返回 unverifiable-quote，后续真实 Context 仍全文。该条不是模型自然生成错误引用的概率测量 |
+| 非 JSON receipt | PASS（自然发生的真实回退） | 20 个失败目标场景真实模型 stop=stop，但返回无法解析；invalid-json，保留完整已收到观察，不清洗 JSON 或容错接受 |
+| 敏感内容、归档破坏、错误状态矛盾、跨 session | PASS（单元层） | 不发辅助请求或拒绝旧 receipt；存储符号链接/字节破坏测试、状态不匹配和敏感标记覆盖；不冒称这些为真实模型 E2E |
+| ObservationPack 组合 | PASS | 三对真实对照 OP 保持开启；EPR receipt 不再打包；真实超时/取消/校验失败后 Context 保留全文；重复投影 >=4 次的边界另有回归测试 |
+
+**摘要完整性检查：** 三个被接受的对照 receipt 都保留了任务关键 WARNING（export 排除）、TARGET（integration NOT RUN）、SUMMARY；单失败 receipt 也保留已收到的 ERROR。主模型六个最终答案均 NO-GO，未把缺失覆盖判为全部通过。本组接受的 receipt **未发现影响上述任务结论的关键行遗漏**，不是一般完整性证明。早期小日志样本甚至把一条逐字 PASS 行归为 failure kind；引用存在不证明分类语义正确，不能只凭 kind 判定结果。复杂失败场景因 receipt 无效而整段回退，没有将删去目标的摘要作为通过证据。
+
+“完整观察”是工具事件实际收到的文本。某些失败命令/对象显示的观察已被宿主限制为约 13 KB/8 KB；不能将它们称为完整 stdout，也不能恢复宿主未交给扩展的字节。
+
+### 三对同设置开关对照：收益与全部额外成本
+
+相同临时项目、同一脚本和三个提示词：首次 native `npm test` 后，两个不调用工具的覆盖结论复核。主模型/思考级别、native eval、OP、权限/其他插件均不变，只切换 reducer。顺序 off/on、on/off、off/on，未控制供应商缓存。每样本 4 次前台响应、一次 eval 内的一次 native bash，没有为了压缩减少任务。
+
+| 三对合计指标 | Reducer off | Reducer on | 变化 |
+|---|---:|---:|---:|
+| 前台模型调用 | 12 | 12 | 不变 |
+| Reducer 模型调用 | 0 | 3 | +3 |
+| 全部模型调用 | 12 | 15 | +25% |
+| 前台 token（含 cache read） | 158,690 | 149,890 | −5.55% |
+| Reducer token | 0 | 12,903 | 必须计入 |
+| **总 token** | **158,690** | **162,793** | **+2.59%** |
+| 前台标价估算 USD | 0.414500 | 0.534876 | 缓存差异显著 |
+| Reducer 标价估算 USD | 0 | 0.001039825 | 必须计入 |
+| **总标价估算 USD** | **0.414500** | **0.535915825** | **+29.29%** |
+| 总耗时（含等待 reducer） | 73.313 s | 79.845 s | +8.91% |
+| Context 观察累计重放字节 | 123,720 | 68,443 | −44.68% |
+
+结果：**更少观察重放已实现，但在已开启 OP 的这组短任务里，总 token、速度和估算费用没有总体收益。** 单次压缩率不足以支持普遍省钱；不同缓存命中主导了部分费用差异。目录的“2x usage”订阅额度与上述 USD 标价不是同一计费尺度。
+
+所有额外探路/失败/恢复运行也计入结构化证据 `allRuns`，并未藏到三对之外不记成本：本轮验证累计 **63 次前台模型响应 + 14 次 reducer 调用**；前台 **818,720 token / $2.995816**，reducer 已报告 **37,953 token / $0.00311265**。前台模型累计记录耗时 **352.846 s**，reducer 累计 **60.384 s**；这是模型阶段累计，不是包括人工检查等待的总开发墙钟时间。
+
+四个取消/超时/不可解析目标运行没有完整辅助用量。它们返回的零 usage **不是免费证明**；已报告合计 **856,673 token / $2.99892865** 只能作为已知部分，不是完整账单。完整账单 **BLOCKED（需供应商用量/账单）**。计数使用公开 completion 调用及完成的 onAttempt；未暴露的底层 HTTP/auth 重试不伪称为精确独立模型调用数。
+
+### 验证命令、首次失败与清理
+
+- `bun run typecheck`：**PASS**，最终 `tsc --noEmit`。首次因 OMP systemPrompt 要求 string[] 失败，修正后重跑；未关闭 strict。
+- `bun test`：**PASS，59 pass / 0 fail，5 files**。最终严格配置回归先复现显式 null 超时被默认值吞掉（6 pass / 1 fail），再修正为仅 undefined 使用默认值；原回归转为通过。新增证据/归档和会话生命周期回归，不用 fake API 证明真实模型。
+- `bun run smoke`：**PASS**，两个固定 npm OMP 18.1.18 加载、公开目录、工具注册、EOF 正常退出；不发送模型请求。真实独立宿主 EPR 链路另列于上表。
+- 清理后再次用用户级插件自动发现启动真实 OMP RPC，不发模型提示词，确认 EPR route=opencode-go/glm-5.3-flash、主模型 gpt-6-astra/high、正常 exit 0。
+- 没有重新安装或升级依赖。现有 pi-ai 18.1.18 补为直接 peer/dev 依赖；既存未跟踪 bun.lock 只同步根声明。**此前 adm-zip/sharp 共 3 项 high 告警仍未修复，安全审计维持 FAIL，不改记 PASS。**
+- LSP 初始化找不到根工作区 TypeScript，引用查询不可用；记录错误后按可见调用点适配，独立适配包的完整 tsc 类型检查仍通过。
+- 首次大对象显示在 native eval 中被截断，无法精确匹配源日志，EPR 全文回退；改用 `display(result.text)` 后真实大日志链路通过。两次初期模型复制了代码后的句号，发生 SyntaxError 后更正；全部前台调用计入探路成本，正式配对使用同一 fenced JS 提示，无该问题。
+- 无效引用探针的前三种注册尝试 **FAIL**：一次仅改 URL 未改变内置 API，实际得到 provider-error；一次公开 custom model 注册要求 apiKey/oauth，宿主 exit 1，没有注入假密钥或复制认证；一次 custom API 注册未接管内置 transport，实际模型正常完成，未冒充无效引用测试通过。最终改为真实响应后的校验边界注入，才验证 unverifiable-quote。其驱动一度把较早的 probe hook 当成完全 settle，下一 prompt 被宿主拒绝；等待真实 agent_end 后完成检查，错误保留在数据中。
+- 暂时的注入参数、探针 TS/故障路由脚本均已移除；其余源码只含真实实现与有行为约束的单元测试。原始合成日志/session/归档保留在私有临时路径，可能被系统清理；没有自动清理用户归档。
+
+来源差异见 [UPSTREAM.md](../UPSTREAM.md)，持久、无凭证的统计/脚本/提示词/来源 hash/逐字校验结果见 [epr-comparison-2026-09-12.json](epr-comparison-2026-09-12.json)。以下保留以前各轮报告的历史状态，不覆盖本节当前结论。
+
+---
+
 ## 原生 eval 融合：本轮配置、运行及对照
 
 日期：2026-09-12。用户要求 Action Fusion 跑通后，经当前宿主与官方发布复核，明确选择 **OMP 原生 eval 顺序融合替代方案**。结论：**原生路径配置与已测行为 PASS；减少模型往返已验证；sol-omp Action Fusion 仍 BLOCKED、未启用。**
