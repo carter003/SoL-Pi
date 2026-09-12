@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "recordedAt": "2026-09-12",
+  "kind": "source-provenance-and-candidate-environment; NOT a dependency resolution lock",
+  "fork": {
+    "repository": "carter003/SoL-Pi",
+    "baseBranch": "main",
+    "baseCommit": "d7ecfc089944f0d04b80122a0a9a6ca0d786f3d0",
+    "baseTree": "b5b002d0bcb55083df0f817dac095e9b2278f491",
+    "delivery": "feat/sol-omp-mvp; new sol-omp directory plus scoped CI workflow; no changes to original SoL-Pi runtime",
+    "pullRequest": "https://github.com/carter003/SoL-Pi/pull/1",
+    "implementationCommit": "58edfd2d14b2d809c4df14cd18d49f82345e46e2"
+  },
+  "upstream": {
+    "repository": "NVlabs/SoL-Pi",
+    "selectedFrom": "carter003/SoL-Pi",
+    "commit": "d7ecfc089944f0d04b80122a0a9a6ca0d786f3d0",
+    "files": [
+      {
+        "sourcePath": "src/sol-pi/extensions/observation-pack/observation.ts",
+        "sourceGitBlobSha": "42a08c6b3d5a4640a003c4693dad43873bb305f7",
+        "localPath": "src/upstream/sol-pi/observation-pack/observation.ts",
+        "localSha256": "34343df5a14bef5f8023574232d032c6ec02e39bbbe66fff6e49bc3eae6ab9fc",
+        "mode": "copied-with-documented-type-and-I/O-adaptations"
+      },
+      {
+        "sourcePath": "src/sol-pi/extensions/observation-pack/index.ts",
+        "sourceGitBlobSha": "4ce29a298552c7381558fefb335b7c10a32b6e20",
+        "localPath": "src/omp/observation-pack.ts",
+        "localSha256": "174c790fd411167a5fe74e171652ed24bfd068f7754d5f2e3ab330ceebd59a3e",
+        "mode": "derived-OMP-registration-and-projection"
+      },
+      {
+        "sourcePath": "src/sol-pi/runtime-paths.ts",
+        "sourceGitBlobSha": "610721d99e91153085fe6af52fbd95e1138c04ea",
+        "localPath": "src/omp/observation-pack.ts",
+        "localSha256": "174c790fd411167a5fe74e171652ed24bfd068f7754d5f2e3ab330ceebd59a3e",
+        "mode": "derived-runtimeRoot-function"
+      },
+      {
+        "sourcePath": "LICENSE",
+        "sourceGitBlobSha": "7c8f7df0cd5fae3fa3be287c4e250f52cc25d994",
+        "localPath": "LICENSE",
+        "localSha256": "3d48837289818b1f3efac782ec22fed30c4656b6c5abecdf5a04f3c0e0cbe7d2",
+        "mode": "unchanged"
+      }
+    ],
+    "originalObservationVerification": {
+      "bytes": 8730,
+      "computedGitBlobSha": "42a08c6b3d5a4640a003c4693dad43873bb305f7",
+      "status": "PASS"
+    }
+  },
+  "omp": {
+    "package": "@oh-my-pi/pi-coding-agent",
+    "candidateVersion": "18.1.18",
+    "tag": "v18.1.18",
+    "commit": "00085d4e7dfdcfbf302c122fa2682b410a0f43d1",
+    "installationForm": "local npm package run with pinned Bun",
+    "actuallyInstalledVersion": "18.1.18",
+    "runtimeVerifiedVersions": [
+      "18.1.18"
+    ],
+    "loadStatus": "PASS",
+    "auditedFiles": [
+      {
+        "path": "packages/coding-agent/src/extensibility/extensions/types.ts",
+        "gitBlobSha": "a4f7e75fd883d1ef6448bfc7329ab7df59938644"
+      },
+      {
+        "path": "packages/coding-agent/src/extensibility/extensions/loader.ts",
+        "gitBlobSha": "a94f67e148f3e614e483291c2f95fb833d90a836"
+      },
+      {
+        "path": "packages/coding-agent/src/extensibility/extensions/wrapper.ts",
+        "gitBlobSha": "a2aa29d8670ccb7767014a11a159c783df67585e"
+      },
+      {
+        "path": "packages/coding-agent/src/exec/exec.ts",
+        "gitBlobSha": "d429a858d310a349ed8ecccaf14a93cd3eb8ef0c"
+      },
+      {
+        "path": "packages/coding-agent/src/index.ts",
+        "gitBlobSha": "03697847a69c9da982cfc9bbc788f6d4f312ed6a"
+      },
+      {
+        "path": "packages/utils/src/dirs.ts",
+        "gitBlobSha": "15956b1ead9db5a45c82da5c00fa5d455771dcf9"
+      },
+      {
+        "path": "docs/extension-loading.md",
+        "gitBlobSha": "eef0a3027a10b38f1b946f9656933bb5d49b6d7d"
+      }
+    ],
+    "verificationScope": "real CLI load, tool registration, public paths and graceful EOF shutdown; MODEL_E2E not run"
+  },
+  "bun": {
+    "candidateVersion": "1.3.14",
+    "actuallyInstalledVersion": "1.3.14",
+    "verifiedVersions": [
+      "1.3.14"
+    ]
+  },
+  "actuallyExecutedEnvironment": {
+    "os": "Linux",
+    "architecture": "x86_64",
+    "kernel": "6.18.35",
+    "node": "v22.16.0",
+    "npm": "10.9.2",
+    "typescriptSyntaxTranspiler": "5.8.3"
+  },
+  "validation": {
+    "nodeUnitTests": {
+      "status": "PASS",
+      "passed": 36,
+      "failed": 0,
+      "skipped": 0
+    },
+    "typescriptSyntaxOnly": {
+      "status": "PASS",
+      "files": 12
+    },
+    "dependencyInstall": "PASS",
+    "semanticTypecheck": "PASS",
+    "bunTests": "PASS",
+    "ompSmoke": "PASS",
+    "modelE2E": "BLOCKED (no configured model credentials in isolated test environment)",
+    "actionFusionImplementation": "BLOCKED",
+    "actionFusionRuntimePaths": "NOT_RUN",
+    "remoteCommitAndPr": "PASS",
+    "realOmpSessionRestart": "NOT_RUN",
+    "bunUnitTests": {
+      "status": "PASS",
+      "passed": 36,
+      "failed": 0
+    }
+  },
+  "ciEvidence": {
+    "runId": 34673994872,
+    "url": "https://github.com/carter003/SoL-Pi/actions/runs/34673994872",
+    "headCommit": "414300470cb465563c030e712e20032f8d43c463",
+    "runnerLabel": "ubuntu-22.04",
+    "nodeJobId": 103500444722,
+    "ompJobId": 103500444601,
+    "conclusion": "success",
+    "dependencyLock": "generated by real bun install; retained in CI artifact, not committed"
+  }
+}
