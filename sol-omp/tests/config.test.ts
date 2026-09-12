@@ -21,7 +21,7 @@ import { temporary } from "./helpers.ts";
     '{"version":1,"evidencePreservingReducer":false}', '{"version":1,"observationPack":null}',
     '{"version":1,"actionFusion":0}', '{"version":1,"observationPack":"true"}',
     '{"version":1,"__proto__":{}}'];
-  for (const text of invalid) assert.throws(() => parseConfig(text), undefined, text);
+  for (const text of invalid) assert.throws(() => parseConfig(text), Error, text);
 });
 
  test("configuration errors never echo unknown values or malformed file contents", () => {
@@ -37,6 +37,7 @@ import { temporary } from "./helpers.ts";
   const result = await loadConfig(directory);
   assert.deepEqual(result.config, DEFAULT_CONFIG);
   assert.equal(result.path, join(directory, "sol-omp.json"));
+  assert.deepEqual(result.config, DEFAULT_CONFIG);
   assert.deepEqual(await readdir(directory), []);
 });
 

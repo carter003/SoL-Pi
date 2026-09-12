@@ -79,7 +79,9 @@ async function main(): Promise<void> {
       const version = await runCli(cli, ["--version"], project, env);
       assert.equal(version.code, 0, version.stderr);
       assert.match(version.stdout + version.stderr, /\b18\.1\.18\b/);
-      const args = ["--mode", "rpc", "--no-extensions", "--no-skills", "--no-rules", "--no-lsp", "--no-pty",
+      // Explicit catalog selection avoids the credential-filtered automatic default.
+      // No prompt is sent, no credentials are injected, and this does not test model inference.
+      const args = ["--model", "openai/gpt-5", "--mode", "rpc", "--no-extensions", "--no-skills", "--no-rules", "--no-lsp", "--no-pty",
         "--session-dir", sessions, "--extension", enabled ? entry : root,
         "--extension", join(root, "tests", "fixtures", "smoke-probe.ts")];
       const result = await runCli(cli, args, project, env);
