@@ -4,7 +4,7 @@
 
 - fork：`carter003/SoL-Pi`，读取到的 main：`d7ecfc089944f0d04b80122a0a9a6ca0d786f3d0`。
 - 上游项目：NVIDIA `NVlabs/SoL-Pi`；本次选取的是 fork 中该固定 commit 的源文件，不自动追踪 main。
-- OMP：候选 npm 包 `@oh-my-pi/pi-coding-agent@18.1.18`；release tag 指向 `00085d4e7dfdcfbf302c122fa2682b410a0f43d1`。源码接口已核对，固定 npm 包已在 GitHub Actions 安装并执行；各项通过/阻塞范围以 `docs/validation-report.md` 为准，不泛称全部兼容。
+- OMP：候选 npm 包 `@oh-my-pi/pi-coding-agent@18.1.19`；release tag 指向 `e4dd2ec3b487f216c569281e2cdb7ec476a81f2e`。源码接口已核对，固定 npm 包已在 GitHub Actions 安装并执行；各项通过/阻塞范围以 `docs/validation-report.md` 为准，不泛称全部兼容。2026-09-13 从 18.1.18 升级：全部审计文件的 Git blob 在 v18.1.19 下逐字节一致，扩展类型目录无差异。
 - 用户任务原文：`docs/implementation-plan-mvp.md`，按上传文件原样保留。
 
 未克隆完整仓库：本地容器 GitHub DNS 解析失败，GitHub 连接和远端 Actions 可用。本交付是基于已读取的固定源文件创建的新增 `sol-omp/` 目录，补丁仅新增这些文件，不改动 fork 中原版 SoL-Pi 文件。
@@ -25,7 +25,8 @@
 1. 将原版 Pi 的类型导入替换为 OMP 公开 ContextEvent 类型，并从其 messages 推导 AgentMessage / ToolResultMessage / TextContent。均为 type-only；避免安装第二套 agent/AI runtime，也避免直接依赖宿主传递依赖的包布局。
 2. 新写归档后调用 FileHandle.sync，再允许生成占位；保留原来的排他创建、O_NOFOLLOW、既有文件大小/hash 校验和私有权限。
 3. 分页入口增加安全整数/非负 offset、有效页长校验，拒绝 UTF-8 continuation byte 中间偏移，并对非空对象读取零字节的变化场景报错。
-4. ID、hash、10 KiB 阈值、两次全文、1024 字节完整行首尾摘录、receipt 识别、字节分页规则保持上游语义。多个 text block 仍用换行拼接。
+4. ID、hash、10 KiB 阈值、1024 字节完整行首尾摘录、receipt 识别和字节分页规则保持上游语义。OMP 本地适配将全文发送次数从 2 改为 0；多个 text block 仍用换行拼接。
+5. OMP 编排层不再按工具名或命令密度排除大文本：除有硬分页上限的 `obs_recall` 和已验证 receipt 外，所有超过阈值的纯文本结果（包括错误、读取、搜索、编辑与 eval）都在首次 provider 请求前归档投影。这是针对上下文突增问题的本地适配。
 
 ## OMP 编排层的改动
 
@@ -33,8 +34,8 @@
 - 用户级严格配置；缺失默认关闭；没有项目级配置、配置热更新或安装时配置写入。
 - `obs_recall` 明确标记 `approval: read`、`loadMode: essential`。关闭打包时保留该恢复工具，不注册 Context hook。
 - 每次事件/调用解析当前 session；根路径异常也落入 fail-open，不让目录异常丢弃本次上下文。
-- 投影使用新数组，仅为占位创建新消息；保留工具调用标识和其他字段。相同 message 在一次投影中重复出现时只计一次发送。
-- 复用上游基于后续 assistant 消息的重启计数重建，没有新建持久化计数数据库。
+- 投影使用新数组，仅为占位创建新消息；保留工具调用标识、错误状态和其他字段；不需要发送计数状态。
+- 宿主截断标记存在时，通过公开 `getArtifactPath` / `getArtifactsDir` 恢复完整 artifact；完整源不可验证时 fail-open，不归档截断预览。
 - 增加对宿主存储锚点以下已存在目录符号链接的拒绝。此检查不是对同用户恶意进程的原子安全沙箱，不承诺阻止全部文件系统竞态。
 - 按 MVP 省略 ledger、TUI 节省量展示与性能收益估算，避免可选遥测失败影响核心链路。
 - 不订阅或接管 Compact；不处理用户和 assistant 内容的压缩；不后台清理归档。
@@ -61,18 +62,18 @@ Action Fusion 的受保护命令派发被 OMP 接口阻塞，未复制其 file-q
 | `config.ts` | `src/upstream/sol-pi/evidence-preserving-reducer/config.ts` | 字节不变，复用诊断/敏感正则、hash、阈值、schema、引用和输出上限；适配配置开启时强制显式路由，不暗用上游默认 |
 | `archive.ts` | 同目录 `archive.ts` | 保留 hash 分片、排他创建及旧对象完整性检查；补齐逐层目录/文件 symlink 拒绝、O_NOFOLLOW、权限、fsync、原始字节和 UTF-8 校验；删除无意义 archiveRoot 包装 |
 | `receipt.ts` | 同目录 `receipt.ts` | 引用、来源 hash、状态、数量/长度校验算法不变；替换 provider type-only import；去掉“lossless”误导措辞，显式声明引用/分类不保证完整性，恢复说明改用 OMP read |
-| `candidate.ts` | 同目录 `candidate.ts` | 纯文本 native bash、沿用诊断命令判断；不读取 Pi 临时日志，不猜 OMP 私有 artifact 路径，不实现 then_run；返回 command/body，不改写结果 |
+| `candidate.ts` | 同目录 `candidate.ts` | 保留纯文本 native bash 基线；OMP 编排层再套用共享低密度策略，排除复合检查命令并扩展 Bun/typecheck/lint；不读取 Pi 临时日志，不猜 OMP 私有 artifact 路径，不实现 then_run；返回 command/body，不改写结果 |
 | `provider.ts` | `src/omp/reducer-provider.ts` | 公开 ModelRegistry.find/getApiKey 与 pi-ai.completeSimple；真正父 signal + deadline；统计实际 completed attempts、usage/cost/duration，错误输出脱敏 |
 | `index.ts` | `src/omp/evidence-preserving-reducer.ts` | 收集 tool_result；在公开 session_stop 下等待 reducer；缓存验证 receipt，仅修改随后 Context 投影；无结果改写、自动续跑、私有 session、后台 jobs |
 
 ### 与原上游及实施计划第 9 节的明确差异
 
-1. **取消优先于首次读取节省。** OMP 18.1.18 `ExtensionContext`、`ToolResultEvent`、`ContextEvent` 没有公开 signal。真实宿主探针也确认 `contextHasSignal=false`。不用类型断言伪造 signal，不包装原生 bash 去丢失其审批元数据。使用 `shared-events.ts:97-106` 的 `session_stop.signal`；`agent-session.ts:4110-4129` 将公开事件接到 post-prompt 取消控制器。因此首轮全文不变，只节省后续 Context 重放。宿主子代理不发此 hook，保持原文。
+1. **EPR 取消与通用投影分层。** OMP 18.1.18/18.1.19（审计面逐字节一致）`ExtensionContext`、`ToolResultEvent`、`ContextEvent` 没有公开 signal。EPR 仍使用 `session_stop.signal`，receipt 只影响后续 Context；ObservationPack 则在同步 provider 前的 Context 投影中完成本地归档，因此大结果首次请求即为占位，不等待 EPR。
 2. **认证不绕路。** registry 没有 complete；公开 `getApiKey(model, sessionId, {signal})` 以请求内回调转交给 `completeSimple`。没有读取/复制认证文件或新存储密钥。未直接采用 `registry.resolver`：锁定版 `config/api-key-resolver.ts:53-55` 初次认证未传 signal；强制刷新分支才传递。没有复制其认证轮换策略，也没有适配层重试。模型对象保持宿主解析的 URL/headers，`systemPrompt` 适配为 OMP 的 string[]。
 3. **依赖明确。** 将已经安装并锁定的 `@oh-my-pi/pi-ai@18.1.18` 声明为直接 peer/dev 依赖；仅补既有 `bun.lock` 的根声明，不升级依赖、不安装第二套 Pi。OMP loader 的 canonical bare pi-ai import shim 连接宿主运行时；真实选定路由的完成链路证明了正常调用可用，不泛化为任意自定义 API 覆盖都有效。
-4. **错误状态不依赖事件顶层。** 补查 details.exitCode、isError/hasError、timedOut 和明确失败尾注；矛盾成功诊断保留原文。工具结果事件订阅返回 void，从不写回 content/details/isError。失败 receipt 仍为 failure，Context 消息其他协议字段原样保留。
+4. **错误状态不依赖事件顶层。** 补查 details.exitCode、isError/hasError、timedOut 和明确失败尾注；结构化错误/超时优先，数字 exitCode 存在时正文尾注不能覆盖它，只有缺少结构化退出码时才使用明确失败尾注。矛盾成功诊断保留原文。工具结果事件订阅返回 void，从不写回 content/details/isError。失败 receipt 仍为 failure，Context 消息其他协议字段原样保留。
 5. **native eval 不是 Action Fusion。** 会话内依据事件关联唯一外层 eval，只替换同一已观察结果中的唯一精确原文（或 JSON 转义字符串）。父调用歧义、重复正文、截断或改格式都拒绝投影。不支持从任意 eval 输出猜回日志，也不生成 then_run。
-6. **组合 fail-open。** EPR 先投影，ObservationPack 明确跳过 receipt 和 EPR 原文回退；无可验证缓存的 bash/eval（包括重启）也保守保留。原 OP 模块的接口增加这个明确保留集合，其他观察逻辑不变。每次投影复核归档，工具调用/内容变动不复用旧 receipt。
+6. **组合 fail-open。** EPR 先投影，ObservationPack 跳过已验证 receipt；EPR 没有 receipt 的大文本回退交给通用本地归档，不再用 `retained` 阻止投影。宿主 artifact 无法恢复时仍保留截断预览；每次投影复核归档，工具调用/内容变动不复用旧 receipt。
 7. **去重范围。** 内存状态按 session-derived root、工具调用 ID、完整内容 hash。失败、取消也记录 attempted；重复 settle/context 不重新花费。无持久摘要数据库，重启不重新处理历史消息；归档和原会话保留。
 8. **遥测边界。** `SOL_OMP_EPR` 记录 request/response/verified/fallback、hash、实际 completed-attempt usage/cost/duration。错误/取消响应的账单完整性为 false，不能把零使用字段当免费。没有复制上游 TUI、journal session entries 或节省量估算；receipt 的历史标记/schema 保留，与 ObservationPack 识别兼容。
 
@@ -80,7 +81,7 @@ Action Fusion 的受保护命令派发被 OMP 接口阻塞，未复制其 file-q
 
 ## EPR 生命周期补修（经用户授权）
 
-整个 settle 队列增加 min(25000ms, 配置超时) 的共享预算，给 OMP 18.1.18 默认 30 秒 handler 留 5 秒取消清理余量；预算覆盖归档与全部候选，父取消转发并等待辅助工作结束，预算耗尽/迟到 receipt 原文回退且不重试。与原版/初版每请求 90 秒不同；配置字段仍兼容且用户配置未改。真实 runner 的三候选探针在 25.032 秒返回、无活动辅助工作或宿主超时告警；模型未调用。非协作取消、卡死 I/O 不作硬截止保证。详细前后证据见 docs/epr-root-cause-analysis-2026-09-12.md 第12节。
+整个 settle 队列增加 min(25000ms, 配置超时) 的共享预算，给 OMP 18.1.18/18.1.19（审计面一致）默认 30 秒 handler 留 5 秒取消清理余量；预算覆盖归档与全部候选，父取消转发并等待辅助工作结束，预算耗尽/迟到 receipt 原文回退且不重试。与原版/初版每请求 90 秒不同；配置字段仍兼容且用户配置未改。真实 runner 的三候选探针在 25.032 秒返回、无活动辅助工作或宿主超时告警；模型未调用。非协作取消、卡死 I/O 不作硬截止保证。详细前后证据见 docs/epr-root-cause-analysis-2026-09-12.md 第12节。
 
 ### Artifact 恢复等待与取消补修
 

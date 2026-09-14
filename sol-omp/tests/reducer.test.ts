@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import type { ToolResultEvent } from "@oh-my-pi/pi-coding-agent";
 import { DEFAULT_CONFIG, parseConfig } from "../src/config.ts";
-import { EvidencePreservingReducer, registerEvidencePreservingReducer } from "../src/omp/evidence-preserving-reducer.ts";
+import { EvidencePreservingReducer, registerEvidencePreservingReducer, resultFailed } from "../src/omp/evidence-preserving-reducer.ts";
 import { ObservationPack, runtimeRoot } from "../src/omp/observation-pack.ts";
 import type { callReducer } from "../src/omp/reducer-provider.ts";
 import { archiveBody } from "../src/upstream/sol-pi/evidence-preserving-reducer/archive.ts";
@@ -16,8 +16,16 @@ const config = { ...DEFAULT_CONFIG, evidencePreservingReducer: true,
 const body = "PASS synthetic check\n".repeat(900) + "WARNING integration checks NOT RUN\n";
 const signal = () => new AbortController().signal;
 const quiet = () => {};
-function event(text = body, id = "call-a", details: unknown = {}): ToolResultEvent {
-  return { type: "tool_result", toolName: "bash", toolCallId: id, input: { command: "npm test" },
+
+test("structured OMP result state outranks status-like text", () => {
+  const content = [{ type: "text" as const, text: "Command exited with code 7\nprocess.exitCode = 1" }];
+  assert.equal(resultFailed({ isError: false, details: { exitCode: 0 }, content }), false);
+  assert.equal(resultFailed({ isError: false, details: { exitCode: 7 }, content }), true);
+  assert.equal(resultFailed({ isError: false, details: {}, content }), true);
+  assert.equal(resultFailed({ isError: false, details: { exitCode: 0, timedOut: true }, content }), true);
+});
+function event(text = body, id = "call-a", details: unknown = {}, command = "npm test"): ToolResultEvent {
+  return { type: "tool_result", toolName: "bash", toolCallId: id, input: { command },
     content: [{ type: "text", text }], details, isError: false } as ToolResultEvent;
 }
 const valid: typeof callReducer = async (_config, _command, failed, archive, source) => ({
@@ -26,6 +34,23 @@ const valid: typeof callReducer = async (_config, _command, failed, archive, sou
   cost: { input: 0.1, output: 0.1, cacheRead: 0, cacheWrite: 0, total: 0.2 },
   outputText: JSON.stringify({ schema: REDUCER_RECEIPT_SCHEMA, source_sha256: archive.hash, status: failed ? "failure" : "success",
     uncertain: true, evidence: [{ kind: failed ? "failure" : "warning", quote: source.split("\n").find(line => (failed ? /ERROR/ : /WARNING/).test(line)) }] }),
+});
+
+test("reducer rejects compound inspections and accepts adapter diagnostic commands", async t => {
+  const ctx = sessionContext(await temporary(t)); const root = runtimeRoot(ctx);
+  let calls = 0;
+  const reducer = new EvidencePreservingReducer(config, async (...args) => { calls++; return valid(...args); }, quiet);
+  const denseMessage = toolMessage(body, { toolName: "bash", toolCallId: "call-dense" });
+  reducer.observe(event(body, "call-dense", {}, "cat src/index.ts && npm test"), root);
+  await reducer.settle([denseMessage], ctx, signal());
+  assert.equal(calls, 0);
+  assert.equal((await reducer.project([denseMessage], root)).messages[0], denseMessage);
+
+  const bunMessage = toolMessage(body, { toolName: "bash", toolCallId: "call-bun" });
+  reducer.observe(event(body, "call-bun", {}, "bun test"), root);
+  await reducer.settle([bunMessage], ctx, signal());
+  assert.equal(calls, 1);
+  assert.match(toolText((await reducer.project([bunMessage], root)).messages[0]!), /sol_pi_evidence_receipt_v1/);
 });
 
  test("receipt projection retains history, error status, and exact archive; repeated settle spends once", async t => {
@@ -54,7 +79,7 @@ const valid: typeof callReducer = async (_config, _command, failed, archive, sou
   assert.equal((await reducer.project([message], root)).messages[0], message);
 });
 
- test("provider rejection, invalid quote and status mismatch retain original even with ObservationPack", async t => {
+ test("provider rejection, invalid quote and status mismatch fall back to Observation Pack", async t => {
   const ctx = sessionContext(await temporary(t)); const root = runtimeRoot(ctx);
   const providers: Array<typeof callReducer> = [async () => { throw new Error("provider failure"); },
     async (...args) => ({ ...await valid(...args), outputText: "not JSON" }),
@@ -67,7 +92,7 @@ const valid: typeof callReducer = async (_config, _command, failed, archive, sou
     await reducer.settle([message], ctx, signal());
     for (let i = 0; i < 4; i++) {
       await reducer.settle([message], ctx, signal()); const projected = await reducer.project([message], root);
-      assert.equal((await new ObservationPack().project(projected.messages, root, quiet, projected.retained))[0], message);
+      assert.match(toolText((await new ObservationPack().project(projected.messages, root, quiet, projected.retained))[0]!), /large tool result replaced/);
     }
     assert.equal(calls, 1);
   }
@@ -88,7 +113,7 @@ const valid: typeof callReducer = async (_config, _command, failed, archive, sou
   assert.equal((await reducer.project([message], root)).messages[0], message); assert.equal(calls, 1);
 });
 
- test("sensitive, timed-out, asynchronous and ambiguous-success logs never leave host", async t => {
+ test("sensitive, timed-out, asynchronous and ambiguous-success logs bypass reducer but are locally packed", async t => {
   const ctx = sessionContext(await temporary(t)); const root = runtimeRoot(ctx);
   const cases = [event(body + "api_key=synthetic-not-a-real-key"), event(body, "call-a", { timedOut: true }),
     event(body, "call-a", { async: { state: "running" } }), event(body + "ERROR contradictory result\n")];
@@ -97,7 +122,7 @@ const valid: typeof callReducer = async (_config, _command, failed, archive, sou
     const message = toolMessage(source.content[0]!.type === "text" ? source.content[0]!.text : "", { toolName: "bash", toolCallId: "call-a" });
     reducer.observe(source, root); await reducer.settle([message], ctx, signal());
     const projected = await reducer.project([message], root);
-    assert.equal((await new ObservationPack().project(projected.messages, root, quiet, projected.retained))[0], message);
+    assert.match(toolText((await new ObservationPack().project(projected.messages, root, quiet, projected.retained))[0]!), /large tool result replaced/);
     assert.equal(calls, 0);
   }
 });
@@ -125,7 +150,7 @@ const valid: typeof callReducer = async (_config, _command, failed, archive, sou
   for (const [instance, sessionRoot] of [[reducer, runtimeRoot(sessionContext(directory, "b"))],
     [new EvidencePreservingReducer(config, valid, quiet), root]] as const) {
     const projected = await instance.project([message], sessionRoot);
-    assert.equal((await new ObservationPack().project(projected.messages, sessionRoot, quiet, projected.retained))[0], message);
+    assert.match(toolText((await new ObservationPack().project(projected.messages, sessionRoot, quiet, projected.retained))[0]!), /large tool result replaced/);
   }
 });
 
@@ -197,7 +222,7 @@ test("already cancelled settle retains truncated candidates without recovery or 
   assert.equal(lookups, 0); assert.equal(calls, 0);
   const projected = await reducer.project(messages, root);
   assert.deepEqual(projected.messages, messages);
-  for (const message of messages) assert.ok(projected.retained.has(message));
+  assert.equal(projected.retained.size, 0);
 });
 
 test("recovery drains in-flight lookup but does not start fallback I/O or later candidates after deadline", async t => {

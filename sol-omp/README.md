@@ -2,14 +2,16 @@
 
 在独立 `sol-omp/` 中将 NVIDIA SoL-Pi 的 Evidence-Preserving Reducer 与 ObservationPack 接入 OMP，不修改原版 SoL-Pi 或 OMP core。用户任务原文见 [实施计划](docs/implementation-plan-mvp.md)，实际结果见 [验证报告](docs/validation-report.md)。
 
+同一仓库现提供一个不依赖 MCP 的 Codex CLI MVP adapter：源码、Markdown、配置、diff、搜索和普通文件读取始终沿用 Codex 原路径；只有明确的测试、构建、类型检查、lint 和运行日志命令在模型可见输出达到 4 KiB 时才同步归档，并返回经过精确引用校验的 EPR receipt。配置、边界和读取命令见 [Codex adapter 文档](docs/codex.md)。
+
 **功能边界：** 已实现观察归档、延迟占位、分页恢复和严格用户级配置。2026-09-12 已在 Linux/WSL2、OMP 18.1.18 独立二进制、真实 `openai-codex/gpt-6-astra` 会话中验证打包、逐字节恢复、同 session 进程重启及关闭打包后恢复旧引用。Evidence-Preserving Reducer 已在同一宿主通过真实合成日志、辅助模型、receipt 校验和后续 Context 投影验证。Action Fusion 保持关闭；Online Context Compact 未移植。这不等于上游四项机制全部通过。
 
 ## 固定环境
 
 - SoL-Pi 源码：`d7ecfc089944f0d04b80122a0a9a6ca0d786f3d0`。
-- OMP：本地 npm 包及用户实际独立二进制均为 `18.1.18`；npm 基线源码 tag 对应 `00085d4e7dfdcfbf302c122fa2682b410a0f43d1`。
+- OMP：本地固定 npm 包为 `18.1.19`，npm 基线源码 tag 对应 `e4dd2ec3b487f216c569281e2cdb7ec476a81f2e`；当前用户实际独立二进制为 `18.1.20`，本轮仅验证插件加载与无模型请求正常退出，不将其列为完整兼容版本。
+- 2026-09-13 复核 OMP 18.1.19：扩展审计面（`extensibility` 类型及 `upstream.lock.json` 全部 7 个审计文件的 Git blob）与 18.1.18 逐字节一致；typecheck、70 项单元测试与真实宿主加载/关闭烟测通过，未发送模型请求。
 - Bun：`1.3.14`。CI 使用 GitHub Actions `ubuntu-22.04` Linux runner；另在 Node `22.16.0` 运行 36 项单元测试。
-- 支持声明仅限验证报告中实际通过的范围，不泛称支持 `>=18.x` 或 Windows。
 
 `upstream.lock.json` 保留来源、适配文件校验值和分阶段验证记录，不是依赖解析锁。`bun.lock` 是已提交的依赖锁；使用下述 frozen 命令复现依赖。当前安装和实测数据见 [验证报告](docs/validation-report.md)。
 
@@ -38,7 +40,7 @@ node --experimental-strip-types --test tests/*.test.ts
 
 ## 使用和配置
 
-正常使用继续由 OMP 管理模型和认证。对于已验证的 OMP 18.1.18，可按选定范围持久链接本地源码；本次用户选择了 user 范围：
+正常使用继续由 OMP 管理模型和认证。对于已验证的 OMP 18.1.19，可按选定范围持久链接本地源码；本次用户选择了 user 范围：
 
 ```bash
 omp plugin link /absolute/path/to/SoL-Pi/sol-omp --scope user
@@ -75,9 +77,11 @@ bun "$SOL_OMP_ROOT/node_modules/.bin/omp" \
 
 ## 观察规则和存储
 
-超过 **10 KiB** 的成功、非空、纯文本工具结果参与；错误、混合图像、小结果和 Reducer receipt 跳过。先成功归档，前两次 Context 投影保留全文，随后替换稳定占位。只改模型 Context 副本，不覆盖原会话消息。保存或校验失败保留原文。
+超过 **10 KiB** 的非空纯文本工具结果都会参与，包括源码、Markdown、配置、diff、搜索、读取、编辑、eval、Bash 和错误结果。唯一的工具级例外是已受 16 KiB/400 行硬限制的 `obs_recall`，避免把恢复页再次归档。小结果、混合图像以及已验证的 Reducer receipt 跳过。
 
-“原文”是 OMP 实际交给插件的工具观察，多个 text block 按上游规则用换行拼接；不等于源文件全文或工具截断前的输出，不能恢复从未收到的数据。发送次数沿用上游投影计数和后续 assistant 消息恢复规则，不是模型请求计费遥测。
+Context hook 在 provider 请求组装前先成功归档，再从**第一次 provider 请求**开始使用稳定占位；不再把前两次大结果发送给主模型。只改模型 Context 副本，不覆盖原会话消息。保存或校验失败保留原文。
+
+若 OMP 已把大输出截成带 `artifact://<id>` 的预览，插件先通过公开 session artifact API 读取并验证完整 artifact，再归档完整内容并生成占位。artifact 缺失、仍含截断标记或读取失败时保留宿主预览并告警，不会把不完整预览伪装成可恢复原文。多个 text block 仍按上游规则用换行拼接。
 
 ```text
 <ctx.sessionManager.getSessionDir()>/sol-omp/<session-id>/
@@ -125,15 +129,15 @@ omp --extension "$SOL_OMP_ROOT/tests/fixtures/model-observation.ts"
 }
 ```
 
-关闭时只将 `evidencePreservingReducer` 改为 `false` 并重启；保留模型字段无妨。不要调整原生 Code Mode、主模型或 `actionFusion` 来代替这个开关。配置超时默认 90000 ms，可用 `evidencePreservingReducerTimeoutMs` 调小。生命周期补修后，整个 settle 队列另受 `min(25000 ms, 配置超时)` 的共享预算约束，为 OMP 18.1.18 的 30 秒 handler 预算预留取消清理时间；预算耗尽保留原文、不接受迟到 receipt、不重试。该余量不保证不响应取消的供应商或卡死 I/O 能按时退出。启用开关不是“合成数据沙箱”：将来符合条件的业务诊断日志也会发送到该路由；若仍仅允许合成数据，进入业务工作前先关闭。
+关闭时只将 `evidencePreservingReducer` 改为 `false` 并重启；保留模型字段无妨。不要调整原生 Code Mode、主模型或 `actionFusion` 来代替这个开关。配置超时默认 90000 ms，可用 `evidencePreservingReducerTimeoutMs` 调小。生命周期补修后，整个 settle 队列另受 `min(25000 ms, 配置超时)` 的共享预算约束，为 OMP 18.1.19 的 30 秒 handler 预算预留取消清理时间；预算耗尽保留原文、不接受迟到 receipt、不重试。该余量不保证不响应取消的供应商或卡死 I/O 能按时退出。启用开关不是“合成数据沙箱”：将来符合条件的业务诊断日志也会发送到该路由；若仍仅允许合成数据，进入业务工作前先关闭该开关。
 
 **外发和费用：** 辅助请求包含日志全文、命令 hash、来源 hash、大小、行数及失败状态，不带完整会话或明文命令。日志本身可能含代码或凭证；沿用上游的疑似敏感内容过滤只是保守启发式，不保证检出全部秘密。凭证只由 OMP 公开认证 API 在请求中解析，不复制认证文件、不持久化密钥、不用私有会话接口。2026-09-12 目录标价：当前 DeepSeek 输入 $0.15、输出 $0.60、cache read $0.003；Muse 输入 $0.10、输出 $0.20、cache read $0.002；历史 GLM 输入 $0.075、输出 $0.25、cache read $0.015，均为每百万 token。目录标价、订阅额度与实际账单不是同一口径。辅助调用不自动进入前台 `get_session_stats`；须另加 stderr 的 `SOL_OMP_EPR` response 中 attempts、usage、cost 和 durationMs。`usageComplete=false` 的错误/取消请求不能按零成本结算。
 
-**时序：** OMP 18.1.18 的 `tool_result` / `context` 没有公开取消 signal，因此这里只收集候选；在公开 `session_stop.signal` 下依次等待辅助请求，不创建后台任务或自动续跑。首轮主模型仍读全文，receipt 从后续 Context 开始使用；不能减少首次读取或同一尚未结束长任务内的读取。宿主不向子代理发出该 settle hook，子代理不承诺 reducer 调用；没 receipt 就保留原文。
+**时序：** OMP 18.1.19 的 `tool_result` / `context` 没有公开取消 signal，因此 EPR 只收集候选；在公开 `session_stop.signal` 下依次等待辅助请求，不创建后台任务或自动续跑。EPR receipt 从后续 Context 开始使用，但启用 ObservationPack 时，超过 10 KiB 的结果从第一次 provider 请求起已由本地可恢复占位保护。宿主不向子代理发出 settle hook，子代理不承诺 reducer 调用；这不影响通用 Context 投影。
 
 **候选：** 沿用锁定上游的诊断命令正则、至少 4096 字节、最多 600000 字符、最多 2048 输出 token、12 条逐字引用、每条最多 600 字符。只处理实际观察到的纯文本 native bash 结果；支持 native eval 内 bash，但必须能唯一关联外层调用，并在外层完整观察里找到原文的唯一精确文本或 JSON 转义形式。并发父调用歧义、被 eval 截断/重新格式化的结果均保留，不把 native eval 当成 `then_run`。
 
-**失败与组合：** 不返回任何 `tool_result` 改写。除事件布尔值外，还检查实际 `exitCode`、details 错误/超时状态和明确的宿主失败尾注；矛盾的成功状态保守回退。已确认失败日志可以形成 `status=failure` receipt，原消息错误字段保持不变。模型失败、超时、取消、可疑内容、归档/引用/状态校验失败都保留原文；ObservationPack 不得再次打包这些回退或已验证 receipt。重启后无缓存 receipt 的 bash/eval 也保守保留全文，其他观察仍按 ObservationPack 规则处理。
+**失败与组合：** 不返回任何 `tool_result` 改写。除事件布尔值外，还检查实际 `exitCode`、details 错误/超时状态和明确的宿主失败尾注；结构化错误/超时标记优先，存在数字 `details.exitCode` 时该值对进程退出状态具有权威性，正文中的 `Command exited with code N` 只在没有结构化退出码时作为保守回退，避免日志示例覆盖真实 exit 0。矛盾的成功诊断不交给辅助模型。已确认失败日志可以形成 `status=failure` receipt，原消息错误字段保持不变。模型失败、超时、取消、可疑内容、归档/引用/状态校验失败时，EPR 不生成 receipt；启用 ObservationPack 时，通用本地归档继续处理这些超过 10 KiB 的纯文本回退。已验证 receipt 保持原样。
 
 **存储与恢复：**
 

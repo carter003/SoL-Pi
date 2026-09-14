@@ -60,9 +60,8 @@ test("startup does not warn about external reducer usage when it is disabled", a
   const handler = fake.handlers.get("context"); assert.ok(handler);
   const message = toolMessage(); const event = { type: "context", messages: [message] };
   const ctxA = sessionContext(fake.root, "a"); const ctxB = sessionContext(fake.root, "b");
-  for (let i = 0; i < 2; i++) assert.equal((await handler(event, ctxA)).messages[0], message);
-  assert.match(toolText((await handler(event, ctxA)).messages[0]), /large tool result replaced/);
-  assert.equal((await handler(event, ctxB)).messages[0], message);
+  for (let i = 0; i < 3; i++) assert.match(toolText((await handler(event, ctxA)).messages[0]), /large tool result replaced/);
+  assert.match(toolText((await handler(event, ctxB)).messages[0]), /large tool result replaced/);
   assert.deepEqual(fake.tools.map(tool => tool.name), ["obs_recall"]);
   assert.equal(fake.execCalls(), 0);
 });

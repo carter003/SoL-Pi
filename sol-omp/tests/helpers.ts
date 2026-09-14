@@ -18,7 +18,7 @@ export const LARGE_TEXT = Array.from({ length: 1600 }, (_, index) =>
 
 export function toolMessage(text = LARGE_TEXT, overrides: Record<string, unknown> = {}): AgentMessage {
   return {
-    role: "toolResult", toolCallId: "call-test-1", toolName: "read",
+    role: "toolResult", toolCallId: "call-test-1", toolName: "sol_omp_test_observation",
     content: [{ type: "text", text }], isError: false, timestamp: 1000,
     details: { fixture: true }, ...overrides,
   } as unknown as AgentMessage;

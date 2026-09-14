@@ -12,17 +12,20 @@ import {
   countLines,
   createObservation,
   ensureStored,
-  FULL_SENDS,
   isObservationId,
   isPureTextResult,
   observationPath,
   placeholderFor,
   readRecallChunk,
 } from "../upstream/sol-pi/observation-pack/observation.ts";
+import { detectTruncation, resolveArtifactContent } from "./artifact-source.ts";
 
 export const RECALL_MAX_BYTES = 16 * 1024;
 export const RECALL_MAX_LINES = 400;
 const RECALL_LIMITS = { maxBytes: RECALL_MAX_BYTES - 512, maxLines: RECALL_MAX_LINES - 2 };
+export function isCompressibleObservation(toolName: string, _input: unknown): boolean {
+  return toolName.toLowerCase() !== "obs_recall";
+}
 
 /** Re-evaluated on every context event/tool call; never cache the first session. */
 export function runtimeRoot(ctx: ExtensionContext): string {
@@ -56,40 +59,39 @@ async function checkArchiveDirectories(root: string): Promise<void> {
   }
 }
 
-/** Small session-keyed projection state; this never owns or edits session history. */
+/** Provider-only projection; this never owns or edits session history. */
 export class ObservationPack {
-  private readonly sentCounts = new Map<string, number>();
-
   async project(
     messages: AgentMessage[],
     root: string,
     warn: (message: string) => void = message => console.error(message),
     retained?: ReadonlySet<AgentMessage>,
+    ctx?: ExtensionContext,
   ): Promise<AgentMessage[]> {
     const projected = [...messages];
-    const priorAssistantCounts = new Array<number>(messages.length);
-    let assistantCount = 0;
-    for (let index = messages.length - 1; index >= 0; index--) {
-      priorAssistantCounts[index] = assistantCount;
-      if (messages[index]?.role === "assistant") assistantCount++;
-    }
-    // A duplicate message in one projection must not count as two provider sends.
-    const countsForThisProjection = new Map<string, number>();
     for (let index = 0; index < messages.length; index++) {
       const message = messages[index];
-      if (!message || retained?.has(message) || !isPureTextResult(message)) continue;
+      if (!message || retained?.has(message) || !isPureTextResult(message)
+        || !isCompressibleObservation(message.toolName, undefined)) continue;
       try {
-        const observation = createObservation(message, root);
+        let source = message;
+        const truncation = detectTruncation(message);
+        if (truncation.isTruncated) {
+          // OMP legitimately paginates some tool results (notably read) without
+          // creating an artifact. The preview is incomplete, so it must not be
+          // archived as though it were the full observation, but this expected
+          // host behavior is not an archive failure either.
+          if (!truncation.artifactId) continue;
+          if (!ctx) throw new Error(`OMP artifact ${truncation.artifactId} cannot be recovered without session context`);
+          const full = await resolveArtifactContent(truncation.artifactId, ctx);
+          if (!full) throw new Error(`OMP artifact ${truncation.artifactId} is unavailable or incomplete`);
+          source = { ...message, content: [{ type: "text", text: full }] };
+        }
+        const observation = createObservation(source, root);
         if (!observation) continue;
         await checkArchiveDirectories(root);
         await ensureStored(observation);
-        const key = `${root}\0${observation.id}`;
-        const previousSends = countsForThisProjection.get(key) ?? this.sentCounts.get(key) ?? priorAssistantCounts[index] ?? 0;
-        countsForThisProjection.set(key, previousSends);
-        if (previousSends >= FULL_SENDS) {
-          projected[index] = { ...message, content: [{ type: "text", text: placeholderFor(observation) }] };
-        }
-        this.sentCounts.set(key, previousSends + 1);
+        projected[index] = { ...message, content: [{ type: "text", text: placeholderFor(observation) }] };
       } catch (error) {
         const reason = error instanceof Error ? error.message : "unknown archive error";
         warn(`[sol-omp] observation packing failed; original retained: ${reason}`);
@@ -160,6 +162,6 @@ export function registerObservationPack(api: ExtensionAPI, enabled: boolean, red
     }
     const reduced = await reducer?.project(event.messages, root);
     const messages = reduced?.messages ?? event.messages;
-    return { messages: enabled ? await pack.project(messages, root, undefined, reduced?.retained) : messages };
+    return { messages: enabled ? await pack.project(messages, root, undefined, reduced?.retained, ctx) : messages };
   });
 }

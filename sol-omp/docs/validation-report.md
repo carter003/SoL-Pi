@@ -1,5 +1,23 @@
 # sol-omp 验证报告
 
+## 2026-09-14 OMP 上下文预算修复
+
+此前“前两次 provider 请求保留全文”与高密度工具排除策略，会让一次或多次大型读取、搜索和错误输出直接进入主模型上下文；EPR 的失败回退又通过 `retained` 阻止 ObservationPack 接管。这与“完整原始记录写入 Observation、主模型只接收可恢复引用”的目标相反，可解释上下文占用突然从约 30% 跳至 90%。
+
+现已改为：所有超过 10 KiB 的非空纯文本工具结果（除有界 `obs_recall` 和已验证 receipt）在第一次 provider 请求前完成本地归档并投影为占位；错误结果同样处理。OMP 自身已截断的输出先通过公开 artifact API 恢复完整内容，恢复失败则保留预览并告警。EPR 无 receipt 的回退不再阻断通用打包。原 session history 仍不改写，归档/校验失败仍 fail-open。
+
+修复后的 `bun run typecheck` PASS；`bun test` 为 **87 pass / 0 fail**；`bun run smoke` 在真实固定 OMP 18.1.19 上分别验证 ObservationPack 关闭/开启时的加载和正常关闭，均 PASS。smoke 不发送模型请求，因此本轮 MODEL_E2E=NOT_RUN。用户安装路径是指向本工作树的符号链接，代码已即时生效于下一次 OMP 启动。
+
+本节覆盖并取代下方历史验证中关于“高密度输出始终保留”“前两次/首轮全文”“EPR 回退不得再次打包”的结论；下方内容保留为当时的验证记录。
+
+## 2026-09-14 高密度输出与状态优先级修复
+
+根据真实 Codex/OMP 使用反馈，容量阈值不再单独决定 ObservationPack 资格。OMP 编排层新增与 Codex 共用的保守命令策略：源码、Markdown、配置、diff、搜索、普通读取及原生 `read/grep/glob/edit/write/eval` 结果原样保留；明确测试、构建、typecheck、lint、编译、运行日志和低密度自定义观察保留压缩能力。策略在公开 `tool_result` 事件记录输入，Context 重启后缺少 Bash 命令记录时 fail-open。
+
+EPR 候选也先经过同一密度策略：`cat src && npm test` 之类混入高密度读取的组合不再外发；Bun、typecheck、lint 等明确诊断命令则可沿用原候选流程。状态判断同时改为结构化优先：错误、超时标记仍是失败；存在数字 `details.exitCode` 时不再扫描正文退出尾注，避免 exit 0 的诊断日志因包含 `Command exited with code 7` 示例而误报。缺少结构化退出码时仍保留宿主尾注的保守回退。
+
+新增回归覆盖高密度原生工具、检查型/诊断型 Bash、未观察的重启 Bash，以及结构化 exit 0 与冲突正文。最终结果：`bun run typecheck` PASS；`bun test` 86 pass / 0 fail；固定 OMP 18.1.19 的关闭/开启真实加载与正常退出 smoke PASS；当前用户 OMP 18.1.20 在启用 ObservationPack/EPR 配置下插件加载和无提示 EOF 退出 PASS。没有运行新的模型请求，因此更新后的真实模型 E2E 为 NOT_RUN，18.1.20 也不据此提升为完整兼容版本。
+
 ## 当前可复现快照收口
 
 日期：2026-09-12。当前运行源码、测试、来源锁和 `bun.lock` 已纳入同一 Git 快照；用户级 OMP 链接继续指向该 checkout，不再依赖未跟踪运行文件。`bun install --frozen-lockfile --ignore-scripts` 无变更，`bun run typecheck` PASS，`bun test` 70 pass / 0 fail，`bun run smoke` PASS。`upstream.lock.json` 中当前本地文件校验值已复核。安全审计仍为 3 项 high、FAIL；本节不覆盖下方各轮历史测试计数和当时状态。

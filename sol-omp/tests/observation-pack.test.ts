@@ -5,7 +5,7 @@ import { test } from "node:test";
 import type { ContextEvent } from "@oh-my-pi/pi-coding-agent";
 type AgentMessage = ContextEvent["messages"][number];
 import {
-  ObservationPack, RECALL_MAX_BYTES, RECALL_MAX_LINES, runtimeRoot,
+  isCompressibleObservation, ObservationPack, RECALL_MAX_BYTES, RECALL_MAX_LINES, runtimeRoot,
 } from "../src/omp/observation-pack.ts";
 import {
   countLines, createObservation, ensureStored, hash, isObservationId, isPureTextResult,
@@ -23,7 +23,7 @@ function observation(message: AgentMessage, root: string) {
 }
 function payload(text: string) { return text.split("\n").slice(2).join("\n"); }
 
- test("first two projections keep full text; third becomes stable and history is untouched", async t => {
+ test("first projection replaces large text and remains stable without mutating history", async t => {
   const root = join(await temporary(t), "session-a");
   const message = toolMessage();
   const messages = [message];
@@ -32,24 +32,22 @@ function payload(text: string) { return text.split("\n").slice(2).join("\n"); }
   const first = await pack.project(messages, root);
   const second = await pack.project(messages, root);
   const third = await pack.project(messages, root);
-  const fourth = await pack.project(messages, root);
   assert.notEqual(first, messages);
-  assert.equal(first[0], message);
-  assert.equal(second[0], message);
-  assert.notEqual(third[0], message);
-  assert.equal(toolText(third[0]!), placeholderFor(observation(message, root)));
-  assert.equal(toolText(fourth[0]!), toolText(third[0]!));
+  assert.notEqual(first[0], message);
+  assert.equal(toolText(first[0]!), placeholderFor(observation(message, root)));
+  assert.equal(toolText(second[0]!), toolText(first[0]!));
+  assert.equal(toolText(third[0]!), toolText(first[0]!));
   assert.equal(JSON.stringify(messages), original);
   const { content: ignored, ...before } = message as any;
-  const { content: changed, ...after } = third[0] as any;
+  const { content: changed, ...after } = first[0] as any;
   assert.deepEqual(after, before);
   assert.equal(await readFile(observation(message, root).filePath, "utf8"), LARGE_TEXT);
 });
 
- test("eligibility: small, exactly 10 KiB, errors, mixed content and receipts stay unchanged", async t => {
+ test("small, exactly 10 KiB, mixed content and receipts stay unchanged; large errors pack", async t => {
   const root = join(await temporary(t), "session-a");
-  const samples = [toolMessage("small"), toolMessage("x".repeat(THRESHOLD_BYTES)),
-    toolMessage(LARGE_TEXT, { isError: true }), toolMessage(LARGE_TEXT, { content: [] }),
+  const error = toolMessage(LARGE_TEXT, { isError: true, toolCallId: "call-error" });
+  const samples = [toolMessage("small"), toolMessage("x".repeat(THRESHOLD_BYTES)), toolMessage(LARGE_TEXT, { content: [] }),
     toolMessage(LARGE_TEXT, { content: [{ type: "text", text: LARGE_TEXT }, { type: "image", data: "AA==", mimeType: "image/png" }] }),
     toolMessage(`sol_pi_evidence_receipt_v1\n${LARGE_TEXT}`),
     { role: "user", content: LARGE_TEXT, timestamp: 1 } as AgentMessage,
@@ -59,6 +57,23 @@ function payload(text: string) { return text.split("\n").slice(2).join("\n"); }
     const projected = await pack.project(samples, root);
     for (let index = 0; index < samples.length; index++) assert.equal(projected[index], samples[index]);
   }
+  const packedError = await pack.project([error], root);
+  assert.match(toolText(packedError[0]!), /replaced before its first provider request/);
+  assert.ok(packedError[0]?.role === "toolResult" && packedError[0].isError);
+  assert.equal(await readFile(observation(error, root).filePath, "utf8"), LARGE_TEXT);
+});
+
+test("all large text tools pack immediately except bounded observation recall", async t => {
+  const root = join(await temporary(t), "session-a");
+  const pack = new ObservationPack();
+  for (const toolName of ["read", "grep", "glob", "edit", "write", "eval", "bash"]) {
+    const message = toolMessage(LARGE_TEXT, { toolName, toolCallId: `call-${toolName}` });
+    assert.match(toolText((await pack.project([message], root))[0]!), /replaced before its first provider request/);
+    assert.equal(isCompressibleObservation(toolName, {}), true);
+  }
+  const recall = toolMessage(LARGE_TEXT, { toolName: "obs_recall", toolCallId: "call-recall" });
+  assert.equal((await pack.project([recall], root))[0], recall);
+  assert.equal(isCompressibleObservation("obs_recall", {}), false);
 });
 
  test("10 KiB + 1 byte and multibyte text use UTF-8 bytes rather than character count", async t => {
@@ -80,32 +95,86 @@ function payload(text: string) { return text.split("\n").slice(2).join("\n"); }
   assert.notEqual(item.id, observation(toolMessage(item.text, { toolCallId: "different-call" }), root).id);
 });
 
- test("duplicate message in one context does not consume both full sends", async t => {
+ test("duplicate messages receive the same immediate placeholder", async t => {
   const root = join(await temporary(t), "session-a");
   const message = toolMessage();
   const pack = new ObservationPack();
-  for (let round = 0; round < 2; round++) {
-    const result = await pack.project([message, message], root);
-    assert.equal(result[0], message); assert.equal(result[1], message);
-  }
   const result = await pack.project([message, message], root);
   assert.match(toolText(result[0]!), /large tool result replaced/);
   assert.equal(toolText(result[0]!), toolText(result[1]!));
 });
 
- test("session A projection counts never leak to session B", async t => {
+ test("session archives remain isolated", async t => {
   const parent = await temporary(t);
   const pack = new ObservationPack(); const message = toolMessage();
-  for (let round = 0; round < 3; round++) await pack.project([message], join(parent, "a"));
-  assert.equal((await pack.project([message], join(parent, "b")))[0], message);
+  const a = await pack.project([message], join(parent, "a"));
+  const b = await pack.project([message], join(parent, "b"));
+  assert.match(toolText(a[0]!), /large tool result replaced/);
+  assert.match(toolText(b[0]!), /large tool result replaced/);
+  assert.notEqual(observation(message, join(parent, "a")).filePath, observation(message, join(parent, "b")).filePath);
 });
 
- test("restart reconstructs prior sends from following assistant messages", async t => {
+ test("restart immediately projects archived history", async t => {
   const root = join(await temporary(t), "session-a");
   const message = toolMessage();
   const assistant = { role: "assistant", content: [{ type: "text", text: "next" }] } as unknown as AgentMessage;
   const projected = await new ObservationPack().project([message, assistant, assistant], root);
   assert.match(toolText(projected[0]!), /large tool result replaced/);
+});
+
+test("truncated host output is recovered from its OMP artifact before archiving", async t => {
+  const directory = await temporary(t);
+  const artifactPath = join(directory, "7.bash-original.log");
+  await writeFile(artifactPath, LARGE_TEXT);
+  const ctx = sessionContext(directory, "artifact-recovery", {
+    getArtifactPath: async (id: string) => id === "7" ? artifactPath : null,
+    getArtifactsDir: () => directory,
+  });
+  const root = runtimeRoot(ctx);
+  const preview = "0000 head\n[…1400ln elided…]\n1599 tail\n[raw output: artifact://7]";
+  const message = toolMessage(preview, { toolName: "bash", toolCallId: "call-artifact", details: {
+    meta: { truncation: { artifactId: "7", direction: "middle" } },
+  } });
+  const source = toolMessage(LARGE_TEXT, { toolName: "bash", toolCallId: "call-artifact", details: message.role === "toolResult" ? message.details : undefined });
+  const projected = await new ObservationPack().project([message], root, quiet, undefined, ctx);
+  assert.match(toolText(projected[0]!), new RegExp(`id: ${observation(source, root).id}`));
+  assert.equal(await readFile(observation(source, root).filePath, "utf8"), LARGE_TEXT);
+  assert.equal(toolText(message), preview);
+});
+
+test("unavailable truncated artifact fails open and never archives the preview", async t => {
+  const directory = await temporary(t);
+  const ctx = sessionContext(directory, "artifact-missing", {
+    getArtifactPath: async () => null,
+    getArtifactsDir: () => directory,
+  });
+  const root = runtimeRoot(ctx);
+  const preview = `${"head\n".repeat(3000)}[…80ln elided…]\n[raw output: artifact://99]`;
+  const message = toolMessage(preview, { toolName: "bash", details: {
+    meta: { truncation: { artifactId: "99", direction: "middle" } },
+  } });
+  const warnings: string[] = [];
+  const projected = await new ObservationPack().project([message], root, warning => warnings.push(warning), undefined, ctx);
+  assert.equal(projected[0], message);
+  assert.equal(warnings.length, 1);
+  await assert.rejects(readFile(observation(message, root).filePath, "utf8"));
+});
+
+test("host pagination without an artifact is retained without a packing warning", async t => {
+  const root = join(await temporary(t), "pagination-without-artifact");
+  const previews = [
+    toolMessage(`${"line\n".repeat(3000)}[Showing lines 1-3000 of 6000]`, { toolName: "read" }),
+    toolMessage(`${"head\n".repeat(3000)}[…80ln elided…]`, { toolName: "eval", details: {
+      meta: { truncation: { direction: "middle", totalLines: 3080 } },
+    } }),
+  ];
+  const warnings: string[] = [];
+  const projected = await new ObservationPack().project(previews, root, warning => warnings.push(warning));
+  assert.deepEqual(projected, previews);
+  assert.equal(warnings.length, 0);
+  for (const preview of previews) {
+    await assert.rejects(readFile(observation(preview, root).filePath, "utf8"));
+  }
 });
 
  test("paged recall reconstructs every original UTF-8 byte including the middle marker", async t => {
@@ -183,15 +252,13 @@ function payload(text: string) { return text.split("\n").slice(2).join("\n"); }
   await assert.rejects(new ObservationPack().recall(root, "obs_" + "a".repeat(24), 0, signal), /fixture cancelled/);
 });
 
- test("archive failure keeps original and does not consume full-send budget", async t => {
+ test("archive failure keeps original and first successful retry replaces it", async t => {
   const parent = await temporary(t); const root = join(parent, "session-a");
   await writeFile(root, "not a directory");
   const pack = new ObservationPack(); const message = toolMessage(); const warnings: string[] = [];
   for (let round = 0; round < 3; round++) assert.equal((await pack.project([message], root, text => warnings.push(text)))[0], message);
   assert.equal(warnings.length, 3);
   await unlink(root);
-  assert.equal((await pack.project([message], root))[0], message);
-  assert.equal((await pack.project([message], root))[0], message);
   assert.match(toolText((await pack.project([message], root))[0]!), /large tool result replaced/);
 });
 

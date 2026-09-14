@@ -3,16 +3,18 @@
  * SPDX-License-Identifier: MIT
  * OMP session-stop / Context adaptation; see UPSTREAM.md.
  */
-import { readFile, readdir } from "node:fs/promises";
-import { join } from "node:path";
 import type { ContextEvent, ExtensionAPI, ExtensionContext, ToolResultEvent } from "@oh-my-pi/pi-coding-agent";
 import type { SolOmpConfig } from "../config.ts";
+import { isCompressibleDiagnosticCommand } from "../output-density.ts";
 import { archiveBody } from "../upstream/sol-pi/evidence-preserving-reducer/archive.ts";
 import { reducibleToolResult } from "../upstream/sol-pi/evidence-preserving-reducer/candidate.ts";
-import { isRecord, LIKELY_SECRET, loadReducerConfig, recordValue, sha256 } from "../upstream/sol-pi/evidence-preserving-reducer/config.ts";
+import { LIKELY_SECRET, loadReducerConfig, recordValue, sha256 } from "../upstream/sol-pi/evidence-preserving-reducer/config.ts";
 import { receiptText, validateReceipt } from "../upstream/sol-pi/evidence-preserving-reducer/receipt.ts";
 import { callReducer } from "./reducer-provider.ts";
+import { detectTruncation, resolveArtifactContent } from "./artifact-source.ts";
 import { runtimeRoot } from "./observation-pack.ts";
+
+export { detectTruncation, isValidFullArtifact, resolveArtifactContent } from "./artifact-source.ts";
 
 type Message = ContextEvent["messages"][number];
 type ToolMessage = Extract<Message, { role: "toolResult" }>;
@@ -48,94 +50,13 @@ function text(content: Content): string | undefined {
 export function resultFailed(event: { isError?: boolean; details?: unknown; content: Content }): boolean {
   const details = event.details;
   const code = recordValue(details, "exitCode");
-  return event.isError === true || recordValue(details, "isError") === true || recordValue(details, "hasError") === true
-    || (typeof code === "number" && code !== 0)
-    || recordValue(details, "timedOut") === true
-    || /(?:^|\n)(?:Command exited with code (?!0(?:\s|$))\d+|\[Command cancelled\]|Command timed out)/u.test(text(event.content) ?? "");
-}
-
-export function detectTruncation(event: { details?: unknown; content: Content }): { isTruncated: boolean; artifactId?: string } {
-  const details = event.details;
-  const meta = recordValue(details, "meta");
-  const truncation = recordValue(meta, "truncation");
-  let isTruncated = false;
-  let artifactId: string | undefined;
-
-  if (isRecord(truncation)) {
-    isTruncated = true;
-    const id = recordValue(truncation, "artifactId");
-    if (typeof id === "string" && /^\d+$/.test(id)) artifactId = id;
-    else if (typeof id === "number") artifactId = String(id);
-  }
-
-  const rawText = text(event.content) ?? "";
-  const rawMatch = /(?:^|\n)\[raw output: artifact:\/\/(\d+)\]/u.exec(rawText);
-  if (rawMatch) {
-    isTruncated = true;
-    artifactId ??= rawMatch[1];
-  }
-  const readMatch = /Read artifact:\/\/(\d+) for full output/u.exec(rawText);
-  if (readMatch) {
-    isTruncated = true;
-    artifactId ??= readMatch[1];
-  }
-  if (
-    /(?:^|\n)\[…(?:\d+ln|\d+B) elided…\]/u.test(rawText) ||
-    /(?:^|\n)\[Showing lines \d+-\d+ of \d+/u.test(rawText) ||
-    /(?:^|\n)\[Showing \d+ of \d+ lines; middle elided\]/u.test(rawText)
-  ) {
-    isTruncated = true;
-  }
-
-  return { isTruncated, artifactId };
-}
-
-export function isValidFullArtifact(content: string): boolean {
-  if (!content || content.length === 0) return false;
-  if (/(?:^|\n)\[…(?:\d+ln|\d+B) elided…\]/u.test(content)) return false;
-  if (/\[ARTIFACT TRUNCATED:/u.test(content)) return false;
-  return true;
-}
-
-export async function resolveArtifactContent(
-  artifactId: string, ctx: ExtensionContext, signal: AbortSignal, deadline: number,
-): Promise<string | undefined> {
-  const expired = () => signal.aborted || performance.now() >= deadline;
-  if (expired() || !ctx.sessionManager) return undefined;
-  const sm = ctx.sessionManager as unknown as Record<string, unknown>;
-  try {
-    if (typeof sm.getArtifactPath === "function") {
-      // The host lookup has no signal parameter: drain it, then recheck before reading.
-      const artifactPath = await (sm.getArtifactPath as (id: string) => Promise<string | null>)(artifactId);
-      if (expired()) return undefined;
-      if (typeof artifactPath === "string" && artifactPath) {
-        const content = await readFile(artifactPath, { encoding: "utf8", signal });
-        if (expired()) return undefined;
-        if (isValidFullArtifact(content)) return content;
-      }
-    }
-  } catch {}
-
-  if (expired()) return undefined;
-  try {
-    if (typeof sm.getArtifactsDir === "function") {
-      const dir = (sm.getArtifactsDir as () => string | null)();
-      if (expired()) return undefined;
-      if (typeof dir === "string" && dir) {
-        const entries = await readdir(dir);
-        if (expired()) return undefined;
-        const match = entries.find(f => f.startsWith(`${artifactId}.`));
-        if (expired()) return undefined;
-        if (match) {
-          const content = await readFile(join(dir, match), { encoding: "utf8", signal });
-          if (expired()) return undefined;
-          if (isValidFullArtifact(content)) return content;
-        }
-      }
-    }
-  } catch {}
-
-  return undefined;
+  if (event.isError === true || recordValue(details, "isError") === true || recordValue(details, "hasError") === true
+    || recordValue(details, "timedOut") === true) return true;
+  // A structured numeric exit code is authoritative. Only use textual host
+  // tails when the event carries no process status at all.
+  if (typeof code === "number" && Number.isFinite(code)) return code !== 0;
+  return /(?:^|\n)(?:Command exited with code (?!0(?:\s|$))\d+|\[Command cancelled\]|Command timed out)/u
+    .test(text(event.content) ?? "");
 }
 
 /** In-memory, session/tool/hash keyed. No jobs, retries, continuation, or history mutation. */
@@ -168,7 +89,13 @@ export class EvidencePreservingReducer {
       if (candidates.length) state.targets.set(event.toolCallId, { hash: sha256(body), candidates });
       return;
     }
-    const reducible = reducibleToolResult(event);
+    const command = recordValue(event.input, "command");
+    if (event.toolName === "bash" && (typeof command !== "string" || !isCompressibleDiagnosticCommand(command))) return;
+    // Preserve the locked upstream candidate behavior, while allowing adapter
+    // diagnostics such as bun/typecheck/lint that share the stricter policy.
+    const reducible = reducibleToolResult(event) ?? (event.toolName === "bash" && typeof command === "string"
+      ? (() => { const body = text(event.content); return body === undefined ? undefined : { command, body }; })()
+      : undefined);
     if (!reducible) return;
     const truncation = detectTruncation(event);
     if (!truncation.isTruncated && Buffer.byteLength(reducible.body, "utf8") < state.config.minBytes) return;
@@ -201,7 +128,7 @@ export class EvidencePreservingReducer {
     if (targetId === event.toolCallId) state.targets.set(targetId, { hash: sha256(observedBody), candidates: [candidate] });
   }
 
-  /** OMP 18.1.18 allows 30s per handler; reserve 5s for abort/drain. */
+  /** OMP 18.1.19 allows 30s per handler; reserve 5s for abort/drain. */
   async settle(messages: Message[], ctx: ExtensionContext, signal: AbortSignal): Promise<void> {
     const controller = new AbortController();
     const relay = () => controller.abort(signal.reason);
@@ -314,21 +241,17 @@ export class EvidencePreservingReducer {
       const message = messages[index];
       if (!message || message.role !== "toolResult") continue;
       const target = state.targets.get(message.toolCallId);
-      if (!target) {
-        // Unknown/restarted bash and eval may hide failed/sensitive diagnostics; fail open.
-        if (message.toolName === "bash" || message.toolName === "eval") retained.add(message);
-        continue;
-      }
+      if (!target) continue;
       const original = text(message.content);
       if (original === undefined || sha256(original) !== target.hash || target.candidates.some(candidate => !candidate.receipt)) {
-        retained.add(message); continue;
+        continue;
       }
       let projected = original;
       for (const candidate of target.candidates) {
         try { await archiveBody(state.config.storeRoot, candidate.body); }
-        catch { retained.add(message); continue projection; }
+        catch { continue projection; }
         const next = this.replaceBody(projected, candidate.observedBody, candidate.receipt!);
-        if (next === undefined) { retained.add(message); continue projection; }
+        if (next === undefined) { continue projection; }
         projected = next;
       }
       const result = { ...message, content: [{ type: "text" as const, text: projected }] };

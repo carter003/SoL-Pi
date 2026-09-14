@@ -16,7 +16,7 @@ type TextContent = Extract<ToolResultMessage["content"][number], { type: "text" 
 /** Only tool results larger than this participate. */
 export const THRESHOLD_BYTES = 10 * 1024;
 /** Provider requests that still carry the full payload before the placeholder takes over. */
-export const FULL_SENDS = 2;
+export const FULL_SENDS = 0;
 /** Placeholder excerpt budget, split evenly between head and tail, whole lines only. */
 export const PLACEHOLDER_EXCERPT_BYTES = 1024;
 
@@ -71,7 +71,6 @@ function countBufferLines(buffer: Buffer): number {
 export function isPureTextResult(message: AgentMessage): message is ToolResultMessage {
 	return (
 		message.role === "toolResult" &&
-		!message.isError &&
 		message.content.length > 0 &&
 		message.content.every((block) => block.type === "text")
 	);
@@ -186,7 +185,7 @@ export function placeholderFor(observation: Observation): string {
 	const head = completeLineExcerpt(observation.text, headBudget, false);
 	const tail = completeLineExcerpt(observation.text, tailBudget, true);
 	return [
-		`[large tool result replaced after its first ${FULL_SENDS} provider requests]`,
+		`[large tool result replaced before its first provider request]`,
 		`id: ${observation.id}`,
 		`tool: ${observation.toolName}`,
 		`original_bytes: ${observation.bytes}`,

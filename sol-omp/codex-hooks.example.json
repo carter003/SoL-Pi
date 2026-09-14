@@ -1,0 +1,18 @@
+{
+  "description": "SoL Observation Pack and EPR for Codex Bash results",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun \"$(git rev-parse --show-toplevel)/sol-omp/src/codex/cli.ts\" codex post-tool-use",
+            "timeout": 30,
+            "statusMessage": "Reducing large tool output with SoL"
+          }
+        ]
+      }
+    ]
+  }
+}
