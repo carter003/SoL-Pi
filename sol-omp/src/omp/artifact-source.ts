@@ -50,6 +50,34 @@ export function isValidFullArtifact(content: string): boolean {
     && !/\[ARTIFACT TRUNCATED:/u.test(content);
 }
 
+export function candidateArtifactDirectories(manager: ExtensionContext["sessionManager"]): string[] {
+  const dirs: string[] = [];
+  if ("getArtifactsDir" in manager && typeof manager.getArtifactsDir === "function") {
+    try {
+      const dir = manager.getArtifactsDir();
+      if (typeof dir === "string" && dir.length > 0 && !dirs.includes(dir)) dirs.push(dir);
+    } catch {}
+  }
+  if ("getArtifactManager" in manager && typeof manager.getArtifactManager === "function") {
+    try {
+      const artifactManager = manager.getArtifactManager();
+      if (artifactManager && typeof artifactManager === "object" && "dir" in artifactManager && typeof artifactManager.dir === "string" && artifactManager.dir.length > 0 && !dirs.includes(artifactManager.dir)) {
+        dirs.push(artifactManager.dir);
+      }
+    } catch {}
+  }
+  if ("getSessionFile" in manager && typeof manager.getSessionFile === "function") {
+    try {
+      const sessionFile = manager.getSessionFile();
+      if (typeof sessionFile === "string" && sessionFile.endsWith(".jsonl")) {
+        const dir = sessionFile.slice(0, -6);
+        if (dir.length > 0 && !dirs.includes(dir)) dirs.push(dir);
+      }
+    } catch {}
+  }
+  return dirs;
+}
+
 export async function resolveArtifactContent(
   artifactId: string,
   ctx: ExtensionContext,
@@ -59,29 +87,74 @@ export async function resolveArtifactContent(
   const expired = () => signal?.aborted === true || performance.now() >= deadline;
   if (expired()) return undefined;
   const manager = ctx.sessionManager;
+
+  const tryRead = async (targetPath: string): Promise<string | undefined> => {
+    try {
+      if (expired()) return undefined;
+      const content = signal
+        ? await readFile(targetPath, { encoding: "utf8", signal })
+        : await readFile(targetPath, "utf8");
+      if (!expired() && isValidFullArtifact(content)) return content;
+    } catch {}
+    return undefined;
+  };
+
   try {
     const artifactPath = await manager.getArtifactPath(artifactId);
     if (expired()) return undefined;
     if (artifactPath) {
-      const content = signal
-        ? await readFile(artifactPath, { encoding: "utf8", signal })
-        : await readFile(artifactPath, "utf8");
-      if (!expired() && isValidFullArtifact(content)) return content;
+      const content = await tryRead(artifactPath);
+      if (content) return content;
     }
   } catch {}
 
   if (expired()) return undefined;
-  try {
-    const directory = manager.getArtifactsDir();
-    if (!directory || expired()) return undefined;
-    const entries = await readdir(directory);
+
+  const candidateDirs = candidateArtifactDirectories(manager);
+  for (const directory of candidateDirs) {
     if (expired()) return undefined;
-    const match = entries.find(name => name.startsWith(`${artifactId}.`));
-    if (!match) return undefined;
-    const content = signal
-      ? await readFile(join(directory, match), { encoding: "utf8", signal })
-      : await readFile(join(directory, match), "utf8");
-    if (!expired() && isValidFullArtifact(content)) return content;
-  } catch {}
+    try {
+      const entries = await readdir(directory);
+      if (expired()) return undefined;
+      const match = entries.find(name => name.startsWith(`${artifactId}.`));
+      if (match) {
+        const content = await tryRead(join(directory, match));
+        if (content) return content;
+      }
+    } catch {}
+  }
+
+  if (!expired() && candidateDirs.length > 0 && performance.now() + 25 < deadline) {
+    await new Promise<void>(resolve => {
+      const timer = setTimeout(resolve, 20);
+      signal?.addEventListener("abort", () => {
+        clearTimeout(timer);
+        resolve();
+      }, { once: true });
+    });
+    if (expired()) return undefined;
+
+    try {
+      const artifactPath = await manager.getArtifactPath(artifactId);
+      if (artifactPath) {
+        const content = await tryRead(artifactPath);
+        if (content) return content;
+      }
+    } catch {}
+
+    for (const directory of candidateDirs) {
+      if (expired()) return undefined;
+      try {
+        const entries = await readdir(directory);
+        if (expired()) return undefined;
+        const match = entries.find(name => name.startsWith(`${artifactId}.`));
+        if (match) {
+          const content = await tryRead(join(directory, match));
+          if (content) return content;
+        }
+      } catch {}
+    }
+  }
+
   return undefined;
 }

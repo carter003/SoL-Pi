@@ -134,6 +134,7 @@ export function registerObservationPack(api: ExtensionAPI, enabled: boolean, red
   project(messages: AgentMessage[], root: string): Promise<{ messages: AgentMessage[]; retained: Set<AgentMessage> }>;
 }): void {
   const pack = new ObservationPack();
+  const warnedFailures = new Set<string>();
   const { Type } = api.typebox;
   api.registerTool({
     name: "obs_recall",
@@ -157,11 +158,25 @@ export function registerObservationPack(api: ExtensionAPI, enabled: boolean, red
       root = runtimeRoot(ctx);
     } catch (error) {
       const reason = error instanceof Error ? error.message : "session storage unavailable";
-      console.error(`[sol-omp] original context retained: ${reason}`);
+      const message = `[sol-omp] original context retained: ${reason}`;
+      if (ctx.hasUI && typeof ctx.ui?.notify === "function") {
+        ctx.ui.notify(message, "warning");
+      } else {
+        console.error(message);
+      }
       return { messages: [...event.messages] };
     }
     const reduced = await reducer?.project(event.messages, root);
     const messages = reduced?.messages ?? event.messages;
-    return { messages: enabled ? await pack.project(messages, root, undefined, reduced?.retained, ctx) : messages };
+    const warn = (message: string) => {
+      if (warnedFailures.has(message)) return;
+      warnedFailures.add(message);
+      if (ctx.hasUI && typeof ctx.ui?.notify === "function") {
+        ctx.ui.notify(message, "warning");
+      } else {
+        console.error(message);
+      }
+    };
+    return { messages: enabled ? await pack.project(messages, root, warn, reduced?.retained, ctx) : messages };
   });
 }

@@ -131,7 +131,7 @@ omp --extension "$SOL_OMP_ROOT/tests/fixtures/model-observation.ts"
 
 关闭时只将 `evidencePreservingReducer` 改为 `false` 并重启；保留模型字段无妨。不要调整原生 Code Mode、主模型或 `actionFusion` 来代替这个开关。配置超时默认 90000 ms，可用 `evidencePreservingReducerTimeoutMs` 调小。生命周期补修后，整个 settle 队列另受 `min(25000 ms, 配置超时)` 的共享预算约束，为 OMP 18.1.19 的 30 秒 handler 预算预留取消清理时间；预算耗尽保留原文、不接受迟到 receipt、不重试。该余量不保证不响应取消的供应商或卡死 I/O 能按时退出。启用开关不是“合成数据沙箱”：将来符合条件的业务诊断日志也会发送到该路由；若仍仅允许合成数据，进入业务工作前先关闭该开关。
 
-**外发和费用：** 辅助请求包含日志全文、命令 hash、来源 hash、大小、行数及失败状态，不带完整会话或明文命令。日志本身可能含代码或凭证；沿用上游的疑似敏感内容过滤只是保守启发式，不保证检出全部秘密。凭证只由 OMP 公开认证 API 在请求中解析，不复制认证文件、不持久化密钥、不用私有会话接口。2026-09-12 目录标价：当前 DeepSeek 输入 $0.15、输出 $0.60、cache read $0.003；Muse 输入 $0.10、输出 $0.20、cache read $0.002；历史 GLM 输入 $0.075、输出 $0.25、cache read $0.015，均为每百万 token。目录标价、订阅额度与实际账单不是同一口径。辅助调用不自动进入前台 `get_session_stats`；须另加 stderr 的 `SOL_OMP_EPR` response 中 attempts、usage、cost 和 durationMs。`usageComplete=false` 的错误/取消请求不能按零成本结算。
+**外发和费用：** 辅助请求包含日志全文、命令 hash、来源 hash、大小、行数及失败状态，不带完整会话或明文命令。日志本身可能含代码或凭证；沿用上游的疑似敏感内容过滤只是保守启发式，不保证检出全部秘密。凭证只由 OMP 公开认证 API 在请求中解析，不复制认证文件、不持久化密钥、不用私有会话接口。2026-09-12 目录标价：当前 DeepSeek 输入 $0.15、输出 $0.60、cache read $0.003；Muse 输入 $0.10、输出 $0.20、cache read $0.002；历史 GLM 输入 $0.075、输出 $0.25、cache read $0.015，均为每百万 token。目录标价、订阅额度与实际账单不是同一口径。辅助调用不自动进入前台 `get_session_stats`；须另查 OMP 轮转日志中的 `SOL_OMP_EPR` response，读取 attempts、usage、cost 和 durationMs。成功遥测使用 OMP 公开文件日志器，不写 stderr 或交互输入区；`usageComplete=false` 的错误/取消请求不能按零成本结算。
 
 **时序：** OMP 18.1.19 的 `tool_result` / `context` 没有公开取消 signal，因此 EPR 只收集候选；在公开 `session_stop.signal` 下依次等待辅助请求，不创建后台任务或自动续跑。EPR receipt 从后续 Context 开始使用，但启用 ObservationPack 时，超过 10 KiB 的结果从第一次 provider 请求起已由本地可恢复占位保护。宿主不向子代理发出 settle hook，子代理不承诺 reducer 调用；这不影响通用 Context 投影。
 

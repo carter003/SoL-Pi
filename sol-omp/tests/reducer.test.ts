@@ -190,7 +190,7 @@ test("settle shares its deadline across candidates, drains abort, and never retr
 });
 
 test("registered tool_result defers artifact I/O to cancellable settle", async t => {
-  const { api, handlers, root } = await fakeApi(t);
+  const { api, handlers, logs, root } = await fakeApi(t);
   let lookups = 0;
   const ctx = sessionContext(root, "deferred", { getArtifactPath: async () => { lookups++; return null; } });
   const reducer = registerEvidencePreservingReducer(api, config)!;
@@ -202,6 +202,28 @@ test("registered tool_result defers artifact I/O to cancellable settle", async t
   const controller = new AbortController(); controller.abort();
   await handlers.get("session_stop")!({ messages: [message], signal: controller.signal }, ctx);
   assert.equal(lookups, 0, "cancelled settle must not start recovery either");
+  assert.match(String(logs.info[0]?.[0]), /^SOL_OMP_EPR=.*"phase":"fallback"/);
+});
+
+test("registered EPR diagnostics never write directly over the interactive editor", async t => {
+  const { api, handlers, logs } = await fakeApi(t);
+  registerEvidencePreservingReducer(api, config);
+  const notices: Array<{ message: string; type: string }> = [];
+  const stderr: unknown[][] = [];
+  const originalError = console.error;
+  console.error = (...args: unknown[]) => { stderr.push(args); };
+  try {
+    await handlers.get("tool_result")!(event(), {
+      hasUI: true,
+      sessionManager: { getSessionDir: () => "relative", getSessionId: () => "broken" },
+      ui: { notify: (message: string, type: string) => notices.push({ message, type }) },
+    });
+  } finally {
+    console.error = originalError;
+  }
+  assert.deepEqual(stderr, []);
+  assert.deepEqual(notices, [{ message: "[sol-omp] EPR storage unavailable; original retained", type: "warning" }]);
+  assert.deepEqual(logs.error, [["[sol-omp] EPR storage unavailable; original retained"]]);
 });
 
 test("already cancelled settle retains truncated candidates without recovery or retries", async t => {

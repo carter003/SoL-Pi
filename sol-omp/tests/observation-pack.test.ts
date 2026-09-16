@@ -2,16 +2,17 @@ import assert from "node:assert/strict";
 import { mkdir, readFile, stat, symlink, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import type { ContextEvent } from "@oh-my-pi/pi-coding-agent";
+import type { ContextEvent, ExtensionContext } from "@oh-my-pi/pi-coding-agent";
 type AgentMessage = ContextEvent["messages"][number];
 import {
-  isCompressibleObservation, ObservationPack, RECALL_MAX_BYTES, RECALL_MAX_LINES, runtimeRoot,
+  isCompressibleObservation, ObservationPack, RECALL_MAX_BYTES, RECALL_MAX_LINES, registerObservationPack, runtimeRoot,
 } from "../src/omp/observation-pack.ts";
+import { candidateArtifactDirectories, resolveArtifactContent } from "../src/omp/artifact-source.ts";
 import {
   countLines, createObservation, ensureStored, hash, isObservationId, isPureTextResult,
   observationPath, placeholderFor, readRecallChunk, THRESHOLD_BYTES,
 } from "../src/upstream/sol-pi/observation-pack/observation.ts";
-import { LARGE_TEXT, sessionContext, temporary, toolMessage, toolText } from "./helpers.ts";
+import { fakeApi, LARGE_TEXT, sessionContext, temporary, toolMessage, toolText } from "./helpers.ts";
 
 const quiet = () => {};
 function observation(message: AgentMessage, root: string) {
@@ -328,4 +329,59 @@ test("host pagination without an artifact is retained without a packing warning"
   for (const limits of [{ maxBytes: 3, maxLines: 1 }, { maxBytes: 100, maxLines: 0 }]) {
     await assert.rejects(readRecallChunk(file, 0, limits), /limits/);
   }
+});
+
+test("resolveArtifactContent recovers from subagent/sessionFile candidate directory", async t => {
+  const directory = await temporary(t);
+  const sessionFile = join(directory, "nested", "session-sub.jsonl");
+  const artifactsDir = join(directory, "nested", "session-sub");
+  await mkdir(artifactsDir, { recursive: true });
+  const artifactPath = join(artifactsDir, "16.bash-original.log");
+  await writeFile(artifactPath, LARGE_TEXT);
+
+  const ctx = sessionContext(directory, "sub-session", {
+    getArtifactPath: async () => null,
+    getArtifactsDir: () => join(directory, "parent-artifacts"),
+    getSessionFile: () => sessionFile,
+  });
+
+  const content = await resolveArtifactContent("16", ctx);
+  assert.equal(content, LARGE_TEXT);
+});
+
+test("context hook uses UI notify for packing warnings and deduplicates repeated alerts", async t => {
+  const fake = await fakeApi(t);
+  registerObservationPack(fake.api, true);
+  const handler = fake.handlers.get("context");
+  assert.ok(handler);
+
+  const notifications: Array<{ message: string; level: string }> = [];
+  const fakeCtx = {
+    ...sessionContext(fake.root, "ui-session", {
+      getArtifactPath: async () => null,
+      getArtifactsDir: () => fake.root,
+    }),
+    hasUI: true,
+    ui: {
+      notify: (message: string, level: string) => {
+        notifications.push({ message, level });
+      },
+    },
+  } as unknown as ExtensionContext;
+
+  const preview = `${"head\n".repeat(3000)}[…80ln elided…]\n[raw output: artifact://16]`;
+  const message = toolMessage(preview, { toolName: "bash", details: {
+    meta: { truncation: { artifactId: "16", direction: "middle" } },
+  } });
+  const event = { type: "context", messages: [message] };
+
+  const result1 = await handler(event, fakeCtx);
+  assert.equal(result1.messages[0], message);
+  assert.equal(notifications.length, 1);
+  assert.equal(notifications[0]?.level, "warning");
+  assert.match(notifications[0]?.message, /artifact 16 is unavailable or incomplete/);
+
+  const result2 = await handler(event, fakeCtx);
+  assert.equal(result2.messages[0], message);
+  assert.equal(notifications.length, 1);
 });

@@ -62,8 +62,14 @@ export function resultFailed(event: { isError?: boolean; details?: unknown; cont
 /** In-memory, session/tool/hash keyed. No jobs, retries, continuation, or history mutation. */
 export class EvidencePreservingReducer {
   private readonly sessions = new Map<string, SessionState>();
-  constructor(private readonly config: SolOmpConfig, private readonly invoke = callReducer,
-    private readonly log: (event: Record<string, unknown>) => void = event => console.error(`SOL_OMP_EPR=${JSON.stringify(event)}`)) {}
+  private readonly config: SolOmpConfig;
+  private readonly invoke: typeof callReducer;
+  private readonly log: (event: Record<string, unknown>) => void;
+  constructor(config: SolOmpConfig, invoke = callReducer, log: (event: Record<string, unknown>) => void) {
+    this.config = config;
+    this.invoke = invoke;
+    this.log = log;
+  }
 
   private state(root: string): SessionState {
     let state = this.sessions.get(root);
@@ -264,15 +270,23 @@ export class EvidencePreservingReducer {
 
 export function registerEvidencePreservingReducer(api: ExtensionAPI, config: SolOmpConfig): EvidencePreservingReducer | undefined {
   if (!config.evidencePreservingReducer) return undefined;
-  const reducer = new EvidencePreservingReducer(config);
+  // OMP's public logger writes out of band to its rotating log file. Writing
+  // successful telemetry to stderr paints it as a red error below the TUI
+  // editor even though the reducer completed normally.
+  const reducer = new EvidencePreservingReducer(config, callReducer,
+    event => api.logger.info(`SOL_OMP_EPR=${JSON.stringify(event)}`));
+  const reportFailure = (ctx: ExtensionContext, message: string) => {
+    api.logger.error(message);
+    if (ctx.hasUI && typeof ctx.ui?.notify === "function") ctx.ui.notify(message, "warning");
+  };
   const withRoot = (ctx: ExtensionContext, fn: (root: string) => void) => {
-    try { fn(runtimeRoot(ctx)); } catch { console.error("[sol-omp] EPR storage unavailable; original retained"); }
+    try { fn(runtimeRoot(ctx)); } catch { reportFailure(ctx, "[sol-omp] EPR storage unavailable; original retained"); }
   };
   api.on("tool_call", (event, ctx) => { withRoot(ctx, root => reducer.begin(event.toolName, event.toolCallId, root)); });
   api.on("tool_result", (event, ctx) => { withRoot(ctx, root => reducer.observe(event, root)); });
   api.on("session_stop", async (event, ctx) => {
     try { await reducer.settle(event.messages, ctx, event.signal); }
-    catch { console.error("[sol-omp] EPR settle failed; original retained"); }
+    catch { reportFailure(ctx, "[sol-omp] EPR settle failed; original retained"); }
     // No continuation, abort, rewriting, or background task.
   });
   return reducer;

@@ -40,6 +40,7 @@ export async function fakeApi(t: TestContext) {
   await mkdir(agent);
   const tools: ToolDefinition<any, any>[] = [];
   const handlers = new Map<string, (...args: any[]) => any>();
+  const logs = { debug: [] as unknown[][], error: [] as unknown[][], info: [] as unknown[][], warn: [] as unknown[][] };
   let execCalls = 0;
   const Type = {
     String: (options = {}) => ({ type: "string", ...options }),
@@ -49,9 +50,15 @@ export async function fakeApi(t: TestContext) {
   };
   const api = {
     pi: { getAgentDir: () => agent }, typebox: { Type },
+    logger: {
+      debug: (...args: unknown[]) => logs.debug.push(args),
+      error: (...args: unknown[]) => logs.error.push(args),
+      info: (...args: unknown[]) => logs.info.push(args),
+      warn: (...args: unknown[]) => logs.warn.push(args),
+    },
     registerTool: (tool: ToolDefinition<any, any>) => tools.push(tool),
     on: (event: string, handler: (...args: any[]) => any) => handlers.set(event, handler),
     exec: () => { execCalls++; throw new Error("An observation extension must not execute commands"); },
   } as unknown as ExtensionAPI;
-  return { root, agent, tools, handlers, api, execCalls: () => execCalls };
+  return { root, agent, tools, handlers, api, logs, execCalls: () => execCalls };
 }
