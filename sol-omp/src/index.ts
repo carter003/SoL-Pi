@@ -17,10 +17,5 @@ export default async function solOmp(api: ExtensionAPI): Promise<void> {
     const loaded = `[sol-omp] loaded observationPack=${config.observationPack} actionFusion=false config=${path}`;
     if (ctx.hasUI) ctx.ui.notify(loaded, "info");
     else console.error(loaded);
-    if (reducer) {
-      const warning = `[sol-omp] EPR enabled route=${config.evidencePreservingReducerProvider}/${config.evidencePreservingReducerModel}; diagnostic logs leave this host; additional provider usage applies; runs at session_stop`;
-      if (ctx.hasUI) ctx.ui.notify(warning, "warning");
-      else console.error(warning);
-    }
   });
 }

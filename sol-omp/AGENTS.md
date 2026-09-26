@@ -7,7 +7,7 @@ Do not patch OMP core/node_modules, bypass approval, modify user authentication,
 Preserve the selected NVIDIA source and license; record changes in `UPSTREAM.md` and `upstream.lock.json`.
 
 Run `bun run typecheck`, `bun test`, and `bun run smoke` on the pinned installation.
-`node --experimental-strip-types --test tests/*.test.ts` is a fallback UNIT test only.
+OMP 18.2.5 exports runtime TypeScript from `node_modules`; Node's type stripping rejects that path, so Bun is the only supported unit-test runtime.
 The fake-API unit tests and TypeScript syntax checks do not prove OMP compatibility.
 Keep Action Fusion disabled until a public dispatch preserves BOTH command approval and tool_call interception.
 Report PASS/FAIL/BLOCKED/NOT_RUN honestly; runtime verification must be evidenced by real command results, not inferred from CI configuration.

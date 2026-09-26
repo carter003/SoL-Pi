@@ -32,6 +32,18 @@ import { temporary } from "./helpers.ts";
   }
 });
 
+test("reducer route identifiers normalize surrounding whitespace and reject blank routes", () => {
+  const route = { version: 1, evidencePreservingReducer: true,
+    evidencePreservingReducerProvider: "\t test-provider \u00a0",
+    evidencePreservingReducerModel: "\n test-model \u3000" };
+  const parsed = parseConfig(JSON.stringify(route));
+  assert.equal(parsed.evidencePreservingReducerProvider, "test-provider");
+  assert.equal(parsed.evidencePreservingReducerModel, "test-model");
+  for (const key of ["evidencePreservingReducerProvider", "evidencePreservingReducerModel"]) {
+    assert.throws(() => parseConfig(JSON.stringify({ ...route, [key]: " \t\n\u00a0\u3000" })), /non-empty/);
+  }
+});
+
  test("missing user config uses defaults without creating any file", async t => {
   const directory = await temporary(t);
   const result = await loadConfig(directory);

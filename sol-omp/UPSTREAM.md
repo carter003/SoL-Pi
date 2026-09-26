@@ -3,8 +3,8 @@
 ## 基线
 
 - fork：`carter003/SoL-Pi`，读取到的 main：`d7ecfc089944f0d04b80122a0a9a6ca0d786f3d0`。
-- 上游项目：NVIDIA `NVlabs/SoL-Pi`；本次选取的是 fork 中该固定 commit 的源文件，不自动追踪 main。
-- OMP：候选 npm 包 `@oh-my-pi/pi-coding-agent@18.1.19`；release tag 指向 `e4dd2ec3b487f216c569281e2cdb7ec476a81f2e`。源码接口已核对，固定 npm 包已在 GitHub Actions 安装并执行；各项通过/阻塞范围以 `docs/validation-report.md` 为准，不泛称全部兼容。2026-09-13 从 18.1.18 升级：全部审计文件的 Git blob 在 v18.1.19 下逐字节一致，扩展类型目录无差异。
+- 上游项目：NVIDIA `NVlabs/SoL-Pi`；最初选取 fork 中上述固定 commit 的源文件。2026-09-26 将当前上游基线更新至 `1559b5cb12c72da4a485bc50fe326586b216fb19`，10 项来源文件的 Git blob 均与原基线一致；不自动追踪 main。
+- OMP：候选 npm 包 `@oh-my-pi/pi-coding-agent@18.2.5`，release tag `v18.2.5` 指向 `37273117021129e96bd05d8277b140ec3fd61990`。2026-09-18 重新取得并记录 7 个扩展审计文件的 Git blob；固定 npm 包完成 typecheck、91 项 Bun 单元测试及关闭/开启 ObservationPack 的真实加载/关闭烟测。各项通过/阻塞范围以 `docs/validation-report.md` 为准，不泛称模型 E2E 兼容；18.1.18/18.1.19 记录保留为历史基线。
 - 用户任务原文：`docs/implementation-plan-mvp.md`，按上传文件原样保留。
 
 未克隆完整仓库：本地容器 GitHub DNS 解析失败，GitHub 连接和远端 Actions 可用。本交付是基于已读取的固定源文件创建的新增 `sol-omp/` 目录，补丁仅新增这些文件，不改动 fork 中原版 SoL-Pi 文件。
@@ -24,7 +24,7 @@
 
 1. 将原版 Pi 的类型导入替换为 OMP 公开 ContextEvent 类型，并从其 messages 推导 AgentMessage / ToolResultMessage / TextContent。均为 type-only；避免安装第二套 agent/AI runtime，也避免直接依赖宿主传递依赖的包布局。
 2. 新写归档后调用 FileHandle.sync，再允许生成占位；保留原来的排他创建、O_NOFOLLOW、既有文件大小/hash 校验和私有权限。
-3. 分页入口增加安全整数/非负 offset、有效页长校验，拒绝 UTF-8 continuation byte 中间偏移，并对非空对象读取零字节的变化场景报错。
+3. 分页入口增加安全整数/非负 offset、有效页长校验，UTF-8 continuation byte 中间偏移自动向前对齐到字符开头（最多 3 字节），返回实际 offset，并按实际位置计算 next_offset，并对非空对象读取零字节的变化场景报错。
 4. ID、hash、10 KiB 阈值、1024 字节完整行首尾摘录、receipt 识别和字节分页规则保持上游语义。OMP 本地适配将全文发送次数从 2 改为 0；多个 text block 仍用换行拼接。
 5. OMP 编排层不再按工具名或命令密度排除大文本：除有硬分页上限的 `obs_recall` 和已验证 receipt 外，所有超过阈值的纯文本结果（包括错误、读取、搜索、编辑与 eval）都在首次 provider 请求前归档投影。这是针对上下文突增问题的本地适配。
 
@@ -53,6 +53,15 @@ Action Fusion 的受保护命令派发被 OMP 接口阻塞，未复制其 file-q
 ## 后续同步
 
 保留 fork 的上游 Git 历史。后续先取所选文件到候选目录，比较上述差异，更新来源与校验值，再执行固定版本类型检查、测试和真实 smoke。不要直接覆盖本地已适配源码，也不要在验证前提升支持版本或推送主分支。
+
+## 上游同步（2026-09-26）
+
+将来源基线从 `d7ecfc089944f0d04b80122a0a9a6ca0d786f3d0` 更新为 NVIDIA `1559b5cb12c72da4a485bc50fe326586b216fb19`。先下载固定提交至候选目录，再与旧基线和当前工作区三方比较。同步根项目的 reducer 路由 trim、Action Fusion Unicode 空格/Windows shell 路径修复及测试、兼容说明和论文链接。Pi 0.85.1 依赖更新已存在；保留本地根测试范围限制和 npm 包报告解析兼容处理。
+
+所引用的 10 项来源文件（含许可证）Git blob 全部未变，因此无需重写 OMP/Codex 运行代码。OMP 配置解析已对 provider/model 调用 trim，新增空白归一化和纯空白拒绝回归。保留 UTF-8 recall 自动对齐、首次投影归档、EPR 生命周期和 artifact 恢复等本地适配；Action Fusion 继续禁用，宿主版本保持 OMP 18.2.5 / Bun 1.3.14。
+
+复核并更新 `upstream.lock.json` 的当前来源；其中 `src/omp/evidence-preserving-reducer.ts` 的旧 localSha256 已过期，本轮仅修正为现有文件的实际值，未修改该运行文件。原始 fork 基线和历史验证记录保留。根项目检查 158 项、四机制专项 4 项、OMP 检查 93 项及真实加载/退出烟测通过；首次根检查的只读 npm 缓存失败和安全审计范围均见 [本轮报告](docs/upstream-sync-2026-09-26.md)。
+
 ## Evidence-Preserving Reducer 适配（2026-09-12）
 
 继续使用同一个锁定 commit `d7ecfc089944f0d04b80122a0a9a6ca0d786f3d0`，未移动上游基线；各文件 Git blob 和当前本地 SHA256 写入 `upstream.lock.json`。根目录原版 SoL-Pi、OMP core/node_modules 均未改动，NVIDIA 版权和 MIT 许可保留。
@@ -88,3 +97,9 @@ Action Fusion 的受保护命令派发被 OMP 接口阻塞，未复制其 file-q
 observe 仅同步收集，不执行 Artifact I/O；完整源恢复统一进入 session_stop 的 settle 预算。候选在任何恢复 await 前标记 attempted；共享 signal/deadline 在路径查询、目录枚举及读取前后检查，readFile 绑定 signal。取消/到期后不启动回退 I/O 或后续候选，不接受迟到源，也不重复恢复或花费。getArtifactPath 与目录枚举没有取消参数，已经开始的操作须等待结束，不通过 Promise.race 遗留后台工作。恢复后的秘密、大小、状态准入与不可用原文回退不变。
 
 四项新回归及最终 68 项完整回归通过，tsc 与真实 OMP 加载/关闭烟测通过；未发送真实模型请求。此次真实宿主烟测仅覆盖加载/关闭，注册恢复路径另用无模型内存烟测验证。历史第15–16节的“双重恢复”说明由此更新；详细证据及非协作取消边界见根因分析第17节。
+
+## UTF-8 recall 自动对齐（2026-09-20）
+
+OMP 和共享分页器在模型猜测字节偏移时自动向前对齐，保留整个字符，避免反复报错。OMP 头部及 details 区分实际与请求位置；共享该分页器的 CLI 同步显示实际 offset 和 requested_offset。省略 offset 仍从 0 开始，分页硬上限不变。原版 Pi、OMP core 和 node_modules 均未修改。测试覆盖所有 2/3/4 字节字符内部位置、3800 偏移、多页完整恢复、页长、EOF 和空文件。
+
+验证：`bun run typecheck` PASS；`bun test` 92 PASS / 0 FAIL；`bun run smoke` PASS（OMP 18.2.5 / Bun 1.3.14，ObservationPack 开/关真实加载与正常退出）。本次真实模型 E2E 为 NOT_RUN。

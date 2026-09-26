@@ -116,7 +116,7 @@ export class ObservationPack {
     }
     signal?.throwIfAborted();
     const text = [
-      `[obs_recall id=${id} offset=${offset} next_offset=${chunk.nextOffset} eof=${chunk.eof}]`,
+      `[obs_recall id=${id} offset=${chunk.offset}${chunk.offset !== offset ? ` requested_offset=${offset}` : ""} next_offset=${chunk.nextOffset} eof=${chunk.eof}]`,
       `[chunk_bytes=${chunk.bytes} chunk_lines=${chunk.lines}; use next_offset to continue]`,
       chunk.text,
     ].join("\n");
@@ -125,7 +125,7 @@ export class ObservationPack {
     }
     return {
       content: [{ type: "text" as const, text }],
-      details: { id, offset, bytes: chunk.bytes, lines: chunk.lines, nextOffset: chunk.nextOffset, eof: chunk.eof },
+      details: { id, offset: chunk.offset, requestedOffset: offset, bytes: chunk.bytes, lines: chunk.lines, nextOffset: chunk.nextOffset, eof: chunk.eof },
     };
   }
 }
@@ -139,12 +139,12 @@ export function registerObservationPack(api: ExtensionAPI, enabled: boolean, red
   api.registerTool({
     name: "obs_recall",
     label: "Recall Observation",
-    description: "Read an archived tool observation from this session by id and byte offset. Follow next_offset for exact pages.",
+    description: "Read an archived tool observation from this session by id and byte offset. Start at 0; follow returned next_offset for exact pages. Mid-character offsets automatically align backward to a UTF-8 boundary.",
     approval: "read",
     loadMode: "essential",
     parameters: Type.Object({
       id: Type.String({ description: "Observation id from a sol-omp placeholder", pattern: "^obs_[a-f0-9]{24}$" }),
-      offset: Type.Optional(Type.Integer({ minimum: 0, description: "Byte offset; default 0. Prefer returned next_offset." })),
+      offset: Type.Optional(Type.Integer({ minimum: 0, description: "UTF-8 byte offset, not a character or line count; default 0. Use returned next_offset to continue. Mid-character offsets align backward automatically." })),
     }),
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
       return pack.recall(runtimeRoot(ctx), params.id, params.offset ?? 0, signal);

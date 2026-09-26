@@ -7,7 +7,7 @@ import { ObservationPack, runtimeRoot } from "../src/omp/observation-pack.ts";
 import { createObservation, isPureTextResult } from "../src/upstream/sol-pi/observation-pack/observation.ts";
 import { fakeApi, sessionContext, toolMessage, toolText } from "./helpers.ts";
 
-test("startup notices use the UI without terminal writes and retain headless diagnostics", async t => {
+test("startup status uses the UI without terminal writes and retains headless diagnostics", async t => {
   const fake = await fakeApi(t);
   const file = join(fake.agent, "sol-omp.json");
   await writeFile(file, JSON.stringify({ version: 1, evidencePreservingReducer: true,
@@ -23,9 +23,8 @@ test("startup notices use the UI without terminal writes and retain headless dia
       notify: (message: string, type: string) => notices.push({ message, type }),
     } });
     assert.deepEqual(stderr, [], "interactive startup must not write over the editor");
-    assert.deepEqual(notices.map(notice => notice.type), ["info", "warning"]);
+    assert.deepEqual(notices.map(notice => notice.type), ["info"]);
     assert.ok(notices[0]!.message.includes(file), "show the effective configuration path");
-    assert.ok(notices[1]!.message.includes("test-provider/test-model"), "identify the external reducer route");
     await start({ type: "session_start" }, { hasUI: false, ui: {
       notify: () => assert.fail("headless diagnostics must not use the no-op UI"),
     } });
@@ -35,14 +34,6 @@ test("startup notices use the UI without terminal writes and retain headless dia
   }
 });
 
-test("startup does not warn about external reducer usage when it is disabled", async t => {
-  const fake = await fakeApi(t); await solOmp(fake.api);
-  const notices: string[] = [];
-  await fake.handlers.get("session_start")!({ type: "session_start" }, { hasUI: true, ui: {
-    notify: (_message: string, type: string) => notices.push(type),
-  } });
-  assert.deepEqual(notices, ["info"]);
-});
 
  test("fake-API unit test: defaults register only read-only recall, not projection or native overrides", async t => {
   const fake = await fakeApi(t); await solOmp(fake.api);

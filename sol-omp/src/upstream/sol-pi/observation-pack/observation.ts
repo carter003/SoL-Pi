@@ -201,6 +201,7 @@ export function placeholderFor(observation: Observation): string {
 }
 
 export interface RecallChunk {
+	readonly offset: number;
 	readonly text: string;
 	readonly bytes: number;
 	readonly lines: number;
@@ -230,14 +231,23 @@ export async function readRecallChunk(
 		if (!fileStats.isFile()) throw new Error("Stored observation is not a regular file");
 		if (offset > fileStats.size) throw new Error(`Offset ${offset} exceeds observation size ${fileStats.size}`);
 
-		const available = Math.max(0, fileStats.size - offset);
-		const buffer = Buffer.alloc(Math.min(available, limits.maxBytes + 4));
-		const { bytesRead } = await handle.read(buffer, 0, buffer.length, offset);
-		if (available > 0 && bytesRead === 0) throw new Error("Stored observation changed during recall");
-		if (bytesRead > 0 && ((buffer[0] ?? 0) & 0xc0) === 0x80) {
-			throw new Error("Recall offset is inside a UTF-8 character; use next_offset");
+		// UTF-8 characters occupy at most four bytes. Include lookbehind so a
+		// guessed offset can recover the whole character without skipping text.
+		const readOffset = Math.max(0, offset - 3);
+		const available = fileStats.size - readOffset;
+		const raw = Buffer.alloc(Math.min(available, limits.maxBytes + 7));
+		const { bytesRead } = await handle.read(raw, 0, raw.length, readOffset);
+		let start = offset - readOffset;
+		if (bytesRead < start || (offset < fileStats.size && bytesRead === start)) {
+			throw new Error("Stored observation changed during recall");
 		}
-		let end = Math.min(bytesRead, limits.maxBytes);
+		while (start > 0 && start < bytesRead && (raw[start]! & 0xc0) === 0x80) start -= 1;
+		if (start < bytesRead && (raw[start]! & 0xc0) === 0x80) {
+			throw new Error("Stored observation has an invalid UTF-8 boundary");
+		}
+		const actualOffset = readOffset + start;
+		const buffer = raw.subarray(start, bytesRead);
+		let end = Math.min(buffer.length, limits.maxBytes);
 		let newlineCount = 0;
 
 		for (let index = 0; index < end; index += 1) {
@@ -251,8 +261,9 @@ export async function readRecallChunk(
 
 		end = trimUtf8End(buffer, end);
 		const chunk = buffer.subarray(0, end);
-		const nextOffset = offset + chunk.length;
+		const nextOffset = actualOffset + chunk.length;
 		return {
+			offset: actualOffset,
 			text: chunk.toString("utf8"),
 			bytes: chunk.length,
 			lines: countBufferLines(chunk),
