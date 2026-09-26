@@ -20,21 +20,21 @@
         "sourcePath": "src/sol-pi/extensions/observation-pack/observation.ts",
         "sourceGitBlobSha": "42a08c6b3d5a4640a003c4693dad43873bb305f7",
         "localPath": "src/upstream/sol-pi/observation-pack/observation.ts",
-        "localSha256": "fa849871150d37a3050dabda19f0be5ae8a6a2f5be57ba79686ac1c2d3adb1be",
+        "localSha256": "28007ab8c29920ea25abfb4f20cdbfe4f643a5a63bf9e0262e49054c98760977",
         "mode": "copied-with-documented-type-and-I/O-adaptations"
       },
       {
         "sourcePath": "src/sol-pi/extensions/observation-pack/index.ts",
         "sourceGitBlobSha": "4ce29a298552c7381558fefb335b7c10a32b6e20",
         "localPath": "src/omp/observation-pack.ts",
-        "localSha256": "38e53202a0b84dbc3e7696e1db282d4ce1bda2ef5515e5e13124a0bf67fa6dfc",
+        "localSha256": "41a2574016c30b82620dd95b82229b5321fcbe8695d89287f99517e6b7e4da12",
         "mode": "derived-OMP-registration-and-projection"
       },
       {
         "sourcePath": "src/sol-pi/runtime-paths.ts",
         "sourceGitBlobSha": "610721d99e91153085fe6af52fbd95e1138c04ea",
         "localPath": "src/omp/observation-pack.ts",
-        "localSha256": "38e53202a0b84dbc3e7696e1db282d4ce1bda2ef5515e5e13124a0bf67fa6dfc",
+        "localSha256": "41a2574016c30b82620dd95b82229b5321fcbe8695d89287f99517e6b7e4da12",
         "mode": "derived-runtimeRoot-function"
       },
       {
@@ -95,28 +95,29 @@
   },
   "omp": {
     "package": "@oh-my-pi/pi-coding-agent",
-    "candidateVersion": "18.1.19",
-    "tag": "v18.1.19",
-    "commit": "e4dd2ec3b487f216c569281e2cdb7ec476a81f2e",
+    "candidateVersion": "18.2.5",
+    "tag": "v18.2.5",
+    "commit": "37273117021129e96bd05d8277b140ec3fd61990",
     "installationForm": "local npm package run with pinned Bun",
-    "actuallyInstalledVersion": "18.1.19",
+    "actuallyInstalledVersion": "18.2.5",
     "runtimeVerifiedVersions": [
       "18.1.18",
-      "18.1.19"
+      "18.1.19",
+      "18.2.5"
     ],
     "loadStatus": "PASS",
     "auditedFiles": [
       {
         "path": "packages/coding-agent/src/extensibility/extensions/types.ts",
-        "gitBlobSha": "a4f7e75fd883d1ef6448bfc7329ab7df59938644"
+        "gitBlobSha": "ccb026360ece7c73ece10e34a1f976b867ab677d"
       },
       {
         "path": "packages/coding-agent/src/extensibility/extensions/loader.ts",
-        "gitBlobSha": "a94f67e148f3e614e483291c2f95fb833d90a836"
+        "gitBlobSha": "b7d9bdeaebfe72a91ac9d3a18bcc24e5e64a4fce"
       },
       {
         "path": "packages/coding-agent/src/extensibility/extensions/wrapper.ts",
-        "gitBlobSha": "a2aa29d8670ccb7767014a11a159c783df67585e"
+        "gitBlobSha": "79888b2951a4603b1ef755b44f77a017c2d4a6d0"
       },
       {
         "path": "packages/coding-agent/src/exec/exec.ts",
@@ -124,18 +125,18 @@
       },
       {
         "path": "packages/coding-agent/src/index.ts",
-        "gitBlobSha": "03697847a69c9da982cfc9bbc788f6d4f312ed6a"
+        "gitBlobSha": "a509b161d6d9b52242bc36251a783f61f2ca824a"
       },
       {
         "path": "packages/utils/src/dirs.ts",
-        "gitBlobSha": "15956b1ead9db5a45c82da5c00fa5d455771dcf9"
+        "gitBlobSha": "041b47e989cdfd0a4b313e5d8b34e32b3a81227e"
       },
       {
         "path": "docs/extension-loading.md",
-        "gitBlobSha": "eef0a3027a10b38f1b946f9656933bb5d49b6d7d"
+        "gitBlobSha": "d03c3c32c1467e720b6b24a2334652fe126234a6"
       }
     ],
-    "verificationScope": "real CLI load, tool registration, public paths and graceful EOF shutdown; MODEL_E2E not run"
+    "verificationScope": "typecheck, Bun unit tests, real CLI load, tool registration, public paths and graceful EOF shutdown; MODEL_E2E not run"
   },
   "bun": {
     "candidateVersion": "1.3.14",
@@ -309,6 +310,27 @@
       "unitTests": 60,
       "realModelRequests": 0,
       "limitations": "Cooperative cancellation only; stalled I/O/unresponsive provider not hard-bounded; task completeness unresolved"
+    }
+  },
+  "omp18_2_5Validation": {
+    "recordedAt": "2026-09-18",
+    "dependencyInstall": "PASS: frozen lockfile, ignore scripts",
+    "semanticTypecheck": "PASS",
+    "bunUnitTests": { "passed": 91, "failed": 0 },
+    "ompSmoke": "PASS with ObservationPack disabled and enabled",
+    "pluginDoctor": "PASS for sol-omp; unrelated package-manifest and orphan:dummypi warnings remain",
+    "nodeOnlyTests": "REMOVED: OMP 18.2.5 runtime exports TypeScript under node_modules, unsupported by Node type stripping",
+    "securityAudit": "FAIL: 3 high advisories inherited through adm-zip and sharp",
+    "modelE2E": "NOT_RUN"
+  },
+  "recallUtf8Alignment": {
+    "recordedAt": "2026-09-20",
+    "behavior": "Align mid-character recall offsets backward by at most 3 bytes; report actual and requested offsets; preserve page limits and exact next_offset. Shared CLI reports actual offset.",
+    "checks": {
+      "typecheck": "PASS",
+      "bunTests": "92 PASS, 0 FAIL",
+      "ompSmoke": "PASS on OMP 18.2.5 / Bun 1.3.14 with ObservationPack disabled and enabled; loading/shutdown only",
+      "modelE2E": "NOT_RUN"
     }
   }
 }

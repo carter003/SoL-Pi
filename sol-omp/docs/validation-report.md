@@ -1,5 +1,14 @@
 # sol-omp 验证报告
 
+## 2026-09-18 OMP 18.2.5 兼容升级
+
+固定 `@oh-my-pi/pi-coding-agent` 与 `@oh-my-pi/pi-ai` 已从 18.1.19 升级到 18.2.5，`bun.lock` 同步更新；运行时解析的 `pi-coding-agent`、`pi-ai`、`pi-tui` 均为 18.2.5。插件只从 `pi-coding-agent` 和 `pi-ai` 包根导入，没有使用 18.2.5 删除的 coding-agent TUI 子路径。release tag `v18.2.5` 对应 commit `37273117021129e96bd05d8277b140ec3fd61990`，7 个扩展审计文件的新 Git blob 已写入 `upstream.lock.json`。
+
+验证结果：`bun install --frozen-lockfile --ignore-scripts` PASS；`bun run typecheck` PASS；`bun test` 为 **91 pass / 0 fail**；`bun run smoke` 在真实固定 OMP 18.2.5 上分别验证 ObservationPack 关闭/开启时的扩展来源、`obs_recall` 注册、公开 session 路径和正常 EOF 关闭，均 PASS。`omp plugin doctor --json` 将 `sol-omp@0.1.0-dev.0` 报告为 ok。烟测不发送提示词、不继承凭证、不调用模型，因此 MODEL_E2E=NOT_RUN。
+
+OMP 18.2.5 的运行时 exports 指向包内 TypeScript 源码；Node 的 experimental type stripping 拒绝处理 `node_modules` 下 TypeScript。旧 Node-only fallback 及对应 CI job 已删除，Bun 1.3.14 是唯一支持的测试运行时。`bun audit --audit-level=high` 仍 FAIL：OMP 依赖链中的 `adm-zip` 与 `sharp` 共 3 项 high 告警；本次未以强制升级覆盖宿主依赖。
+
+
 ## 2026-09-14 OMP 上下文预算修复
 
 此前“前两次 provider 请求保留全文”与高密度工具排除策略，会让一次或多次大型读取、搜索和错误输出直接进入主模型上下文；EPR 的失败回退又通过 `retained` 阻止 ObservationPack 接管。这与“完整原始记录写入 Observation、主模型只接收可恢复引用”的目标相反，可解释上下文占用突然从约 30% 跳至 90%。

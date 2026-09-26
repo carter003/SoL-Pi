@@ -9,9 +9,9 @@
 ## 固定环境
 
 - SoL-Pi 源码：`d7ecfc089944f0d04b80122a0a9a6ca0d786f3d0`。
-- OMP：本地固定 npm 包为 `18.1.19`，npm 基线源码 tag 对应 `e4dd2ec3b487f216c569281e2cdb7ec476a81f2e`；当前用户实际独立二进制为 `18.1.20`，本轮仅验证插件加载与无模型请求正常退出，不将其列为完整兼容版本。
-- 2026-09-13 复核 OMP 18.1.19：扩展审计面（`extensibility` 类型及 `upstream.lock.json` 全部 7 个审计文件的 Git blob）与 18.1.18 逐字节一致；typecheck、70 项单元测试与真实宿主加载/关闭烟测通过，未发送模型请求。
-- Bun：`1.3.14`。CI 使用 GitHub Actions `ubuntu-22.04` Linux runner；另在 Node `22.16.0` 运行 36 项单元测试。
+- OMP：本地固定 npm 包及完整兼容目标均为 `18.2.5`；此前 `18.1.19` 验证记录保留在验证报告中。
+- 2026-09-18 复核 OMP 18.2.5：公开根导入保持兼容；typecheck、91 项 Bun 单元测试与真实宿主加载/关闭烟测通过，未发送模型请求。
+- Bun：`1.3.14`。CI 使用 GitHub Actions `ubuntu-22.04` Linux runner。OMP 18.2.5 的运行时导出指向 `node_modules` 内 TypeScript 源码，Node type stripping 不支持该路径，因此不再提供 Node-only fallback。
 
 `upstream.lock.json` 保留来源、适配文件校验值和分阶段验证记录，不是依赖解析锁。`bun.lock` 是已提交的依赖锁；使用下述 frozen 命令复现依赖。当前安装和实测数据见 [验证报告](docs/validation-report.md)。
 
@@ -28,11 +28,6 @@ bun run smoke
 
 本次 `bun audit --audit-level=high` **FAIL**：固定 OMP 依赖链中 `adm-zip`、`sharp` 共 3 项 high 告警。用户明确选择保留风险，仅继续合成文本的只读测试；没有升级依赖或宣称漏洞已修复。类型检查/运行测试通过不代替安全审计通过。
 
-检查失败时保留真实输出，不把未运行阶段标记为 PASS。只有 Node 的环境可运行下面的**单元测试**，但它不代替完整类型检查或真实宿主验证：
-
-```bash
-node --experimental-strip-types --test tests/*.test.ts
-```
 
 `smoke` 从本目录已安装包的 `package.json#bin.omp` 获取真实 CLI，严格检查 OMP/Bun 版本；不使用 PATH 中另一个 OMP。它启动隔离 RPC 会话，检查扩展来源、工具注册、配置路径和 session 接口，再由客户端关闭 stdin，让 OMP 正常清理退出。分别测试关闭/开启打包和 manifest 目录/显式 TS 入口。没有探针、非零退出或超时均失败。
 
@@ -40,7 +35,7 @@ node --experimental-strip-types --test tests/*.test.ts
 
 ## 使用和配置
 
-正常使用继续由 OMP 管理模型和认证。对于已验证的 OMP 18.1.19，可按选定范围持久链接本地源码；本次用户选择了 user 范围：
+正常使用继续由 OMP 管理模型和认证。对于已验证的 OMP 18.2.5，可按选定范围持久链接本地源码；本次用户选择了 user 范围：
 
 ```bash
 omp plugin link /absolute/path/to/SoL-Pi/sol-omp --scope user
@@ -55,7 +50,7 @@ bun "$SOL_OMP_ROOT/node_modules/.bin/omp" \
   --extension "$SOL_OMP_ROOT/src/index.ts"
 ```
 
-使用非默认 profile 时保留相应 `--profile` 参数。`session_start` 在交互模式通过公开 `ctx.ui.notify` 显示加载信息和实际配置路径，不直接写 stderr，以免打断输入区域；无 UI 的 RPC/print 模式仍将诊断写入 stderr。启用 EPR 时，交互模式另显示 warning 级通知，保留辅助路由、诊断日志外发、额外供应商用量及 `session_stop` 运行时机的提醒；无 UI 时同样保留该提醒。加载信息示例：
+使用非默认 profile 时保留相应 `--profile` 参数。`session_start` 在交互模式通过公开 `ctx.ui.notify` 显示加载信息和实际配置路径，不直接写 stderr，以免打断输入区域；无 UI 的 RPC/print 模式仍将加载信息写入 stderr。加载信息示例：
 
 ```text
 [sol-omp] loaded observationPack=false actionFusion=false config=<实际路径>/sol-omp.json
@@ -90,7 +85,7 @@ Context hook 在 provider 请求组装前先成功归档，再从**第一次 pro
 
 每次调用解析当前 session，不缓存首个 session 路径；恢复工具只接受当前 session 的 observation id，不接受任意路径。默认保留归档，关闭/卸载不删除。新文件为 `0600`、对象目录 `0700`；日志可能含代码或敏感内容，勿公开归档。符号链接检查不是对恶意同用户进程的原子安全沙箱。
 
-使用占位中真实 id 调用 `obs_recall`，从 `offset: 0` 开始，跟随返回的 `next_offset`，直到 `eof: true`。偏移为 UTF-8 字节，不是字符。每页含头部最多 16 KiB/400 行；非法 id、偏移或 UTF-8 字符中间偏移会拒绝。
+使用占位中真实 id 调用 `obs_recall`，从 `offset: 0` 开始，跟随返回的 `next_offset`，直到 `eof: true`。偏移为 UTF-8 字节，不是字符。每页含头部最多 16 KiB/400 行；非法 id、负数、非整数或超出文件大小的偏移会拒绝。落在 UTF-8 字符中间时自动向前对齐（最多 3 字节），当次调用直接返回完整字符；头部 `offset` 为实际起点，发生对齐时另附 `requested_offset`。后续继续使用 `next_offset`，避免重复读取。
 
 ## 真实模型验证与对照
 

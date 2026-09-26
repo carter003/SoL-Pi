@@ -11,20 +11,6 @@ concurrency:
   group: sol-omp-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  node-unit:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 5
-    defaults:
-      run:
-        working-directory: sol-omp
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22.16.0"
-      - run: node --experimental-strip-types --test tests/*.test.ts
   omp-runtime:
     permissions:
       contents: read

@@ -229,7 +229,7 @@ test("host pagination without an artifact is retained without a packing warning"
   await assert.rejects(restarted.recall(join(parent, "b"), id), /current session/);
 });
 
- test("recall rejects arbitrary paths, malformed ids, unsafe offsets and mid-character offsets", async t => {
+ test("recall rejects arbitrary paths, malformed ids and unsafe offsets", async t => {
   const root = join(await temporary(t), "session-a"); const pack = new ObservationPack();
   const message = toolMessage("中🙂".repeat(5000)); await pack.project([message], root);
   const item = observation(message, root);
@@ -241,10 +241,65 @@ test("host pagination without an artifact is retained without a packing warning"
     await assert.rejects(pack.recall(root, item.id, offset), /safe integer/);
   }
   await assert.rejects(pack.recall(root, item.id, item.bytes + 1), /exceeds/);
-  await assert.rejects(pack.recall(root, item.id, 1), /UTF-8 character/);
   const eof = await pack.recall(root, item.id, item.bytes);
   assert.equal(eof.details.eof, true); assert.equal(eof.details.bytes, 0);
   assert.equal(payload(eof.content[0]!.text), "");
+});
+
+test("recall aligns guessed offsets and reconstructs the remaining archive within page limits", async t => {
+  const root = join(await temporary(t), "session-a");
+  const text = "中🙂".repeat(5000);
+  const pack = new ObservationPack(); const message = toolMessage(text);
+  await pack.project([message], root);
+  const id = observation(message, root).id;
+  // 3800 is the last byte of an emoji; its leading byte is at 3797.
+  let offset = 3800; let recovered = "";
+  for (let page = 0; page < 20; page++) {
+    const result = await pack.recall(root, id, offset);
+    const output = result.content[0]!.text;
+    if (page === 0) {
+      assert.equal(result.details.offset, 3797);
+      assert.equal(result.details.requestedOffset, 3800);
+      assert.match(output, /offset=3797 requested_offset=3800 next_offset=/);
+    } else assert.equal(result.details.offset, offset);
+    assert.ok(Buffer.byteLength(output) <= RECALL_MAX_BYTES);
+    assert.ok(countLines(output) <= RECALL_MAX_LINES);
+    assert.equal(result.details.nextOffset, result.details.offset + result.details.bytes);
+    assert.ok(result.details.nextOffset > offset);
+    recovered += payload(output);
+    if (result.details.eof) break;
+    offset = result.details.nextOffset;
+  }
+  assert.equal(recovered, Buffer.from(text).subarray(3797).toString("utf8"));
+});
+
+test("low-level recall aligns every byte of ASCII, two-, three- and four-byte characters", async t => {
+  const file = join(await temporary(t), "utf8.txt");
+  const text = "é中🙂\nA🙂中文é";
+  await writeFile(file, text);
+  let boundary = 0;
+  for (const character of text) {
+    for (let inner = 0; inner < Buffer.byteLength(character); inner++) {
+      let requested = boundary + inner; let recovered = "";
+      for (let page = 0; page < 30; page++) {
+        const chunk = await readRecallChunk(file, requested, { maxBytes: 4, maxLines: 1 });
+        assert.equal(chunk.offset, page === 0 ? boundary : requested);
+        assert.ok(chunk.bytes <= 4);
+        assert.ok(chunk.nextOffset > requested);
+        assert.equal(chunk.nextOffset, chunk.offset + chunk.bytes);
+        recovered += chunk.text;
+        if (chunk.eof) break;
+        requested = chunk.nextOffset;
+      }
+      assert.equal(recovered, Buffer.from(text).subarray(boundary).toString("utf8"));
+    }
+    boundary += Buffer.byteLength(character);
+  }
+  const eof = await readRecallChunk(file, boundary, { maxBytes: 4, maxLines: 1 });
+  assert.equal(eof.offset, boundary); assert.equal(eof.text, ""); assert.equal(eof.eof, true);
+  await writeFile(file, "");
+  const empty = await readRecallChunk(file, 0, { maxBytes: 4, maxLines: 1 });
+  assert.equal(empty.offset, 0); assert.equal(empty.nextOffset, 0); assert.equal(empty.eof, true);
 });
 
  test("recall respects cancellation before any read", async t => {

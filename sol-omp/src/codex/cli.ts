@@ -75,7 +75,8 @@ async function observation(args: string[]): Promise<void> {
     const chunk = await readObservationChunk(root, id, offset, maxBytes);
     process.stdout.write([
       `observation_id=${id}`,
-      `offset=${offset}`,
+      `offset=${chunk.offset}`,
+      `requested_offset=${offset}`,
       `bytes=${chunk.bytes}`,
       `next_offset=${chunk.nextOffset}`,
       `eof=${chunk.eof}`,
