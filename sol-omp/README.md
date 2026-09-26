@@ -8,7 +8,7 @@
 
 ## 固定环境
 
-- SoL-Pi 源码：`d7ecfc089944f0d04b80122a0a9a6ca0d786f3d0`。
+- SoL-Pi 源码：`1559b5cb12c72da4a485bc50fe326586b216fb19`（2026-09-26 同步；所引用的 ObservationPack/EPR 源文件与旧基线一致）。本轮差异、适配判断与验证见 [上游同步报告](docs/upstream-sync-2026-09-26.md)。
 - OMP：本地固定 npm 包及完整兼容目标均为 `18.2.5`；此前 `18.1.19` 验证记录保留在验证报告中。
 - 2026-09-18 复核 OMP 18.2.5：公开根导入保持兼容；typecheck、91 项 Bun 单元测试与真实宿主加载/关闭烟测通过，未发送模型请求。
 - Bun：`1.3.14`。CI 使用 GitHub Actions `ubuntu-22.04` Linux runner。OMP 18.2.5 的运行时导出指向 `node_modules` 内 TypeScript 源码，Node type stripping 不支持该路径，因此不再提供 Node-only fallback。

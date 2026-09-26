@@ -1,5 +1,11 @@
 # sol-omp 验证报告
 
+## 2026-09-26 SoL-Pi 上游同步
+
+当前来源基线更新至 `NVlabs/SoL-Pi@1559b5cb12c72da4a485bc50fe326586b216fb19`。10 项引用源文件的 Git blob 未变，OMP/Codex 运行代码无需适配；新增 reducer 路由空白处理回归。`bun run typecheck`、93 项 Bun 测试、OMP 18.2.5 / Bun 1.3.14 真实加载/退出烟测全部 PASS。根项目 158 项测试、包检查、Pi 公共 API 和四机制专项 4 项测试也通过。
+
+首次根检查因默认 npm 缓存只读 FAIL，改用临时缓存后完整重跑 PASS；根 audit 达到 high 门槛，但仍有 2 moderate。OMP 依赖未变，本轮未重跑其安全审计，历史 3 high 记录保留。MODEL_E2E=NOT_RUN。完整范围、源码对照、命令及证据见 [上游同步报告](upstream-sync-2026-09-26.md)。
+
 ## 2026-09-18 OMP 18.2.5 兼容升级
 
 固定 `@oh-my-pi/pi-coding-agent` 与 `@oh-my-pi/pi-ai` 已从 18.1.19 升级到 18.2.5，`bun.lock` 同步更新；运行时解析的 `pi-coding-agent`、`pi-ai`、`pi-tui` 均为 18.2.5。插件只从 `pi-coding-agent` 和 `pi-ai` 包根导入，没有使用 18.2.5 删除的 coding-agent TUI 子路径。release tag `v18.2.5` 对应 commit `37273117021129e96bd05d8277b140ec3fd61990`，7 个扩展审计文件的新 Git blob 已写入 `upstream.lock.json`。

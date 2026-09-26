@@ -3,7 +3,7 @@
 ## 基线
 
 - fork：`carter003/SoL-Pi`，读取到的 main：`d7ecfc089944f0d04b80122a0a9a6ca0d786f3d0`。
-- 上游项目：NVIDIA `NVlabs/SoL-Pi`；本次选取的是 fork 中该固定 commit 的源文件，不自动追踪 main。
+- 上游项目：NVIDIA `NVlabs/SoL-Pi`；最初选取 fork 中上述固定 commit 的源文件。2026-09-26 将当前上游基线更新至 `1559b5cb12c72da4a485bc50fe326586b216fb19`，10 项来源文件的 Git blob 均与原基线一致；不自动追踪 main。
 - OMP：候选 npm 包 `@oh-my-pi/pi-coding-agent@18.2.5`，release tag `v18.2.5` 指向 `37273117021129e96bd05d8277b140ec3fd61990`。2026-09-18 重新取得并记录 7 个扩展审计文件的 Git blob；固定 npm 包完成 typecheck、91 项 Bun 单元测试及关闭/开启 ObservationPack 的真实加载/关闭烟测。各项通过/阻塞范围以 `docs/validation-report.md` 为准，不泛称模型 E2E 兼容；18.1.18/18.1.19 记录保留为历史基线。
 - 用户任务原文：`docs/implementation-plan-mvp.md`，按上传文件原样保留。
 
@@ -53,6 +53,15 @@ Action Fusion 的受保护命令派发被 OMP 接口阻塞，未复制其 file-q
 ## 后续同步
 
 保留 fork 的上游 Git 历史。后续先取所选文件到候选目录，比较上述差异，更新来源与校验值，再执行固定版本类型检查、测试和真实 smoke。不要直接覆盖本地已适配源码，也不要在验证前提升支持版本或推送主分支。
+
+## 上游同步（2026-09-26）
+
+将来源基线从 `d7ecfc089944f0d04b80122a0a9a6ca0d786f3d0` 更新为 NVIDIA `1559b5cb12c72da4a485bc50fe326586b216fb19`。先下载固定提交至候选目录，再与旧基线和当前工作区三方比较。同步根项目的 reducer 路由 trim、Action Fusion Unicode 空格/Windows shell 路径修复及测试、兼容说明和论文链接。Pi 0.85.1 依赖更新已存在；保留本地根测试范围限制和 npm 包报告解析兼容处理。
+
+所引用的 10 项来源文件（含许可证）Git blob 全部未变，因此无需重写 OMP/Codex 运行代码。OMP 配置解析已对 provider/model 调用 trim，新增空白归一化和纯空白拒绝回归。保留 UTF-8 recall 自动对齐、首次投影归档、EPR 生命周期和 artifact 恢复等本地适配；Action Fusion 继续禁用，宿主版本保持 OMP 18.2.5 / Bun 1.3.14。
+
+复核并更新 `upstream.lock.json` 的当前来源；其中 `src/omp/evidence-preserving-reducer.ts` 的旧 localSha256 已过期，本轮仅修正为现有文件的实际值，未修改该运行文件。原始 fork 基线和历史验证记录保留。根项目检查 158 项、四机制专项 4 项、OMP 检查 93 项及真实加载/退出烟测通过；首次根检查的只读 npm 缓存失败和安全审计范围均见 [本轮报告](docs/upstream-sync-2026-09-26.md)。
+
 ## Evidence-Preserving Reducer 适配（2026-09-12）
 
 继续使用同一个锁定 commit `d7ecfc089944f0d04b80122a0a9a6ca0d786f3d0`，未移动上游基线；各文件 Git blob 和当前本地 SHA256 写入 `upstream.lock.json`。根目录原版 SoL-Pi、OMP core/node_modules 均未改动，NVIDIA 版权和 MIT 许可保留。
