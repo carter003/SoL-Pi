@@ -103,7 +103,7 @@ export function createObservation(message: ToolResultMessage, runtimeRoot: strin
 	if (containsReducerReceipt(text)) return undefined;
 	const bytes = Buffer.byteLength(text, "utf8");
 	if (bytes <= THRESHOLD_BYTES) return undefined;
-	if (!runtimeRoot) throw new Error("Persistent SoL-Pi runtime directory is unavailable");
+	if (!runtimeRoot) throw new Error("SoL-Pi runtime directory is unavailable");
 
 	const contentHash = hash(text);
 	const id = `obs_${hash(`${message.toolName}\0${message.toolCallId}\0${contentHash}`).slice(0, 24)}`;
@@ -191,6 +191,7 @@ export function placeholderFor(observation: Observation): string {
 		`original_bytes: ${observation.bytes}`,
 		`original_lines: ${observation.lines}`,
 		`estimated_tokens: ${observation.tokens}`,
+		`search: call obs_search with {"id":"${observation.id}","query":"<literal text>"} to locate evidence before recalling pages`,
 		`retrieve: call obs_recall with {"id":"${observation.id}","offset":0}; continue with returned next_offset`,
 		`[first complete lines, up to ${headBudget} bytes]`,
 		head,

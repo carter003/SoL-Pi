@@ -1,16 +1,33 @@
 name: sol-omp checks
 on:
   pull_request:
-    paths: ["sol-omp/**", ".github/workflows/sol-omp-check.yml"]
+    paths: ["sol-omp/**", "src/**", "tests/**", "scripts/**", "examples/**", "package*.json", "agents-install.md", ".github/workflows/sol-omp-check.yml"]
   push:
     branches: [main]
-    paths: ["sol-omp/**", ".github/workflows/sol-omp-check.yml"]
+    paths: ["sol-omp/**", "src/**", "tests/**", "scripts/**", "examples/**", "package*.json", "agents-install.md", ".github/workflows/sol-omp-check.yml"]
 permissions:
   contents: read
 concurrency:
   group: sol-omp-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  sol-pi-runtime:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run check
+      - run: npm audit --audit-level=high
+      - run: node scripts/check-pi-compat.mjs --strict
+      - run: npx vitest run tests/all-mechanisms.test.ts
+      - run: python3 -m unittest discover -s examples/sol-pi-skill/tests -v
   omp-runtime:
     permissions:
       contents: read
@@ -33,23 +50,20 @@ jobs:
           mkdir -p smoke-results
           set -o pipefail
           bun --version | tee smoke-results/bun-version.log
-          if [ -f bun.lock ]; then
-            bun install --frozen-lockfile 2>&1 | tee smoke-results/install.log
-          else
-            bun install 2>&1 | tee smoke-results/install.log
-          fi
+          bun install --frozen-lockfile --ignore-scripts 2>&1 | tee smoke-results/install.log
+      - name: Audit pinned dependencies
+        run: |
+          set -o pipefail
+          bun audit --audit-level=high 2>&1 | tee smoke-results/audit.log
       - name: Typecheck
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: |
           set -o pipefail
           bun run typecheck 2>&1 | tee smoke-results/typecheck.log
       - name: Bun unit tests
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: |
           set -o pipefail
           bun test 2>&1 | tee smoke-results/tests.log
       - name: Real OMP load and shutdown (no model)
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: |
           set -o pipefail
           bun run smoke 2>&1 | tee smoke-results/smoke.log
@@ -70,7 +84,7 @@ jobs:
           script: |
             const fs = require('node:fs');
             const marker = '<!-- sol-omp-verification -->';
-            const files = ['bun-version.log', 'install.log', 'typecheck.log', 'tests.log', 'smoke.log'];
+            const files = ['bun-version.log', 'install.log', 'audit.log', 'typecheck.log', 'tests.log', 'smoke.log'];
             const sections = files.map(name => {
               const path = `sol-omp/smoke-results/${name}`;
               if (!fs.existsSync(path)) return `### ${name}\nNOT_RUN`;

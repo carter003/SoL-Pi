@@ -37,7 +37,7 @@ test("startup status uses the UI without terminal writes and retains headless di
 
  test("fake-API unit test: defaults register only read-only recall, not projection or native overrides", async t => {
   const fake = await fakeApi(t); await solOmp(fake.api);
-  assert.deepEqual(fake.tools.map(tool => tool.name), ["obs_recall"]);
+  assert.deepEqual(fake.tools.map(tool => tool.name), ["obs_recall", "obs_search"]);
   assert.equal(fake.tools[0]!.approval, "read");
   assert.equal(fake.tools[0]!.loadMode, "essential");
   assert.equal(fake.handlers.has("context"), false);
@@ -53,7 +53,7 @@ test("startup status uses the UI without terminal writes and retains headless di
   const ctxA = sessionContext(fake.root, "a"); const ctxB = sessionContext(fake.root, "b");
   for (let i = 0; i < 3; i++) assert.match(toolText((await handler(event, ctxA)).messages[0]), /large tool result replaced/);
   assert.match(toolText((await handler(event, ctxB)).messages[0]), /large tool result replaced/);
-  assert.deepEqual(fake.tools.map(tool => tool.name), ["obs_recall"]);
+  assert.deepEqual(fake.tools.map(tool => tool.name), ["obs_recall", "obs_search"]);
   assert.equal(fake.execCalls(), 0);
 });
 

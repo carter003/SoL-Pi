@@ -3,11 +3,28 @@
 ## 基线
 
 - fork：`carter003/SoL-Pi`，读取到的 main：`d7ecfc089944f0d04b80122a0a9a6ca0d786f3d0`。
-- 上游项目：NVIDIA `NVlabs/SoL-Pi`；最初选取 fork 中上述固定 commit 的源文件。2026-09-26 将当前上游基线更新至 `1559b5cb12c72da4a485bc50fe326586b216fb19`，10 项来源文件的 Git blob 均与原基线一致；不自动追踪 main。
-- OMP：候选 npm 包 `@oh-my-pi/pi-coding-agent@18.2.5`，release tag `v18.2.5` 指向 `37273117021129e96bd05d8277b140ec3fd61990`。2026-09-18 重新取得并记录 7 个扩展审计文件的 Git blob；固定 npm 包完成 typecheck、91 项 Bun 单元测试及关闭/开启 ObservationPack 的真实加载/关闭烟测。各项通过/阻塞范围以 `docs/validation-report.md` 为准，不泛称模型 E2E 兼容；18.1.18/18.1.19 记录保留为历史基线。
+- 上游项目：NVIDIA `NVlabs/SoL-Pi`；当前基线为 `219568034fa54ed121ede80961655e33dfb9d0e3`（2026-10-19 同步）。相对 9 月基线，10 项来源映射中 5 项变化；逐项判断见下节，不自动追踪 main。
+- OMP：固定 npm 包 `@oh-my-pi/pi-coding-agent@18.12.2`，release tag `v18.12.2` 指向 `1d5aff90b057ce7dbfe32ea557a527c1b3144b72`。7 个扩展审计文件的 Git blob 已更新；完整类型检查、103 项 Bun 测试及真实加载/关闭、归档检索/恢复烟测通过。各项通过/阻塞范围以 `docs/validation-report.md` 为准，不泛称模型 E2E 兼容；旧版本记录保留为历史证据。
 - 用户任务原文：`docs/implementation-plan-mvp.md`，按上传文件原样保留。
 
-未克隆完整仓库：本地容器 GitHub DNS 解析失败，GitHub 连接和远端 Actions 可用。本交付是基于已读取的固定源文件创建的新增 `sol-omp/` 目录，补丁仅新增这些文件，不改动 fork 中原版 SoL-Pi 文件。
+初次交付历史：当时未克隆完整仓库，本地容器 GitHub DNS 解析失败，GitHub 连接和远端 Actions 可用；通过固定源文件新增 `sol-omp/`，未改变根 SoL-Pi。后续按明确的上游同步任务更新根扩展，当前根运行源码与所选 NVIDIA 提交逐文件一致。
+
+## 2026-10-19 同步与适配
+
+上游压缩计费、失败恢复、Pi 1.x/codemode、shell 设置和临时会话修复同步至根项目。94 个下载 blob 经 Git tree 校验，25 个根运行源码文件与上游相同。保留根测试范围和 npm JSON 报告兼容差异；另加 fork 导航和新 Skill 示例的测试环境隔离。示例仅同步源码，没有安装其 hooks 或运行其 setup。
+
+| 变化的来源映射 | OMP 处理 |
+|---|---|
+| Observation 核心 | 同步错误文案变化；保留 FULL_SENDS=0、fsync、UTF-8 对齐，并加入检索提示。 |
+| Observation Context hook | 新 Pi 使用克隆消息原地更新以保留缓存；OMP 的公开 emitContext 仍支持返回新消息数组，继续只改变投影副本，不直接照搬 Pi 的处理。 |
+| runtime-paths | 临时会话支持进入根 Pi 扩展；OMP 本轮仍要求公开的持久 session 目录，无目录时保留原文，不扩大未经验证的会话支持范围。 |
+| EPR candidate/index | Pi 的 structuredContent、融合标记和嵌套工具策略属于 Pi 接入。OMP 保留自身结构化 exitCode 优先、严格失败回退及 native eval 唯一原文关联，不移植 Pi 私有路径或融合逻辑。 |
+
+新增独立适配文件 `src/omp/observation-search.ts`：只读、字面量 UTF-8 检索，64 KiB 扫描缓冲、每页至多 10 个有界摘录和精确字节位置，拒绝任意路径/符号链接。`obs_search` 与 `obs_recall` 一样在打包关闭后保留，结果不再打包。新增 `src/omp/usage.ts`：通过公开消息/settle 事件与 EPR 已有 response 遥测统计当前进程观测期的主模型、辅助调用、缓存、费用估算和耗时，不记正文或凭证，未知费用保持 null。
+
+适配配置增加可选 `evidencePreservingReducerMinBytes`（默认 32768）及 `evidencePreservingReducerMinReductionRatio`（默认 0.5）。旧用户文件无需改写；不够大的日志避免辅助请求，receipt 比例不足则保留原文/本地打包，已经发生的辅助费用仍计入。两项仅约束大小，未宣称净经济收益。
+
+OMP 固定宿主升级后旧锁仍保留有漏洞的可选依赖，审计失败。普通 `bun update` 没有刷新这些解析；随后在隔离目录从完全相同的精确 manifest 生成新锁，纳入项目并冻结安装，更新 transformers 4.3.1 / ONNX 1.30.0 / sharp 0.35.5 / adm-zip 0.6.1，最终审计 0 告警。没有强制 override 或手动改动宿主源码。Action Fusion 在最新公开接口下仍 BLOCKED。命令与中途失败见 [升级报告](docs/upstream-sync-2026-10-19.md)。
 
 ## 源码映射
 

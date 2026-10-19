@@ -11,7 +11,7 @@ import { archiveBody } from "../src/upstream/sol-pi/evidence-preserving-reducer/
 import { loadReducerConfig, REDUCER_RECEIPT_SCHEMA } from "../src/upstream/sol-pi/evidence-preserving-reducer/config.ts";
 import { fakeApi, sessionContext, temporary, toolMessage, toolText } from "./helpers.ts";
 
-const config = { ...DEFAULT_CONFIG, evidencePreservingReducer: true,
+const config = { ...DEFAULT_CONFIG, evidencePreservingReducer: true, evidencePreservingReducerMinBytes: 4096,
   evidencePreservingReducerProvider: "opencode-go", evidencePreservingReducerModel: "glm-5.3-flash" };
 const body = "PASS synthetic check\n".repeat(900) + "WARNING integration checks NOT RUN\n";
 const signal = () => new AbortController().signal;
@@ -34,6 +34,40 @@ const valid: typeof callReducer = async (_config, _command, failed, archive, sou
   cost: { input: 0.1, output: 0.1, cacheRead: 0, cacheWrite: 0, total: 0.2 },
   outputText: JSON.stringify({ schema: REDUCER_RECEIPT_SCHEMA, source_sha256: archive.hash, status: failed ? "failure" : "success",
     uncertain: true, evidence: [{ kind: failed ? "failure" : "warning", quote: source.split("\n").find(line => (failed ? /ERROR/ : /WARNING/).test(line)) }] }),
+});
+
+test("the default size gate avoids small auxiliary calls and admits the exact boundary", async t => {
+  const ctx = sessionContext(await temporary(t)); const root = runtimeRoot(ctx);
+  let calls = 0;
+  const reducer = new EvidencePreservingReducer({ ...config,
+    evidencePreservingReducerMinBytes: DEFAULT_CONFIG.evidencePreservingReducerMinBytes },
+    async (...args) => { calls++; return valid(...args); }, quiet);
+  const tail = "\nWARNING boundary fixture\n";
+  const exact = "x".repeat(32768 - Buffer.byteLength(tail)) + tail;
+  const texts = [exact.slice(1), exact];
+  const messages = texts.map((text, index) => toolMessage(text, { toolName: "bash", toolCallId: `boundary-${index}` }));
+  texts.forEach((text, index) => reducer.observe(event(text, `boundary-${index}`), root));
+  await reducer.settle(messages, ctx, signal());
+  assert.equal(calls, 1);
+  const projected = await reducer.project(messages, root);
+  assert.equal(projected.messages[0], messages[0]);
+  assert.match(toolText(projected.messages[1]!), /sol_pi_evidence_receipt_v1/);
+});
+
+test("a verified receipt below the required size reduction falls back without retrying or hiding its cost", async t => {
+  const ctx = sessionContext(await temporary(t)); const root = runtimeRoot(ctx);
+  let calls = 0;
+  const events: Record<string, unknown>[] = [];
+  const reducer = new EvidencePreservingReducer({ ...config, evidencePreservingReducerMinReductionRatio: 0.999 },
+    async (...args) => { calls++; return valid(...args); }, event => events.push(event));
+  const message = toolMessage(body, { toolName: "bash", toolCallId: "call-a" });
+  reducer.observe(event(), root);
+  await reducer.settle([message], ctx, signal());
+  await reducer.settle([message], ctx, signal());
+  assert.equal(calls, 1);
+  assert.equal((await reducer.project([message], root)).messages[0], message);
+  assert.ok(events.some(event => event.phase === "response" && event.cost !== undefined));
+  assert.ok(events.some(event => event.reason === "receipt-under-min-reduction"));
 });
 
 test("reducer rejects compound inspections and accepts adapter diagnostic commands", async t => {

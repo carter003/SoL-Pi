@@ -57,7 +57,14 @@ export async function fakeApi(t: TestContext) {
       warn: (...args: unknown[]) => logs.warn.push(args),
     },
     registerTool: (tool: ToolDefinition<any, any>) => tools.push(tool),
-    on: (event: string, handler: (...args: any[]) => any) => handlers.set(event, handler),
+    on: (event: string, handler: (...args: any[]) => any) => {
+      const previous = handlers.get(event);
+      handlers.set(event, async (...args: any[]) => {
+        const before = await previous?.(...args);
+        const after = await handler(...args);
+        return after ?? before;
+      });
+    },
     exec: () => { execCalls++; throw new Error("An observation extension must not execute commands"); },
   } as unknown as ExtensionAPI;
   return { root, agent, tools, handlers, api, logs, execCalls: () => execCalls };

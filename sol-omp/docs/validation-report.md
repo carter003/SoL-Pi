@@ -1,5 +1,13 @@
 # sol-omp 验证报告
 
+## 2026-10-19 上游同步、OMP 升级和检索/统计
+
+当前来源为 NVIDIA `2195680`，根开发依赖 Pi `1.3.0`，适配器固定 OMP `18.12.2` / Bun `1.3.14`。根检查 **268 tests PASS**，四机制专项 **4 PASS**；适配器检查 **103 tests PASS**。真实 OMP 烟测覆盖开关两种加载方式、两个只读工具注册，以及宿主 session 路径下的关键词检索和 28,024 字节原文逐字节回读。未请求模型。
+
+增加 `obs_search`；EPR 默认门槛为 32 KiB、receipt 至少缩小 50%；新增主模型/辅助模型统一 `SOL_OMP_USAGE` 记录。根 audit 为 **0 vulnerabilities**。OMP 直接沿用旧锁升级时审计 **FAIL：8 high**；重新解析固定 manifest 的兼容传递依赖，再冻结安装后审计 **PASS：0 vulnerabilities**。新上游 Skill 示例首次有一项依赖环境的测试失败，隔离 `CODEX_THREAD_ID` 并覆盖两种分支后 **15 tests PASS**。
+
+本轮 **MODEL_E2E=NOT_RUN**，费用/速度对照 **NOT_RUN**，GitHub CI 运行 **NOT_RUN**（仅更新工作流）。未更新用户配置、认证、全局 Pi/OMP 或宿主源码。命令、失败处理和来源核对详见 [升级报告](upstream-sync-2026-10-19.md)。以下日期均为历史记录。
+
 ## 2026-09-26 SoL-Pi 上游同步
 
 当前来源基线更新至 `NVlabs/SoL-Pi@1559b5cb12c72da4a485bc50fe326586b216fb19`。10 项引用源文件的 Git blob 未变，OMP/Codex 运行代码无需适配；新增 reducer 路由空白处理回归。`bun run typecheck`、93 项 Bun 测试、OMP 18.2.5 / Bun 1.3.14 真实加载/退出烟测全部 PASS。根项目 158 项测试、包检查、Pi 公共 API 和四机制专项 4 项测试也通过。

@@ -9,6 +9,8 @@ export interface SolOmpConfig {
   readonly evidencePreservingReducerProvider?: string;
   readonly evidencePreservingReducerModel?: string;
   readonly evidencePreservingReducerTimeoutMs: number;
+  readonly evidencePreservingReducerMinBytes: number;
+  readonly evidencePreservingReducerMinReductionRatio: number;
 }
 
 export const DEFAULT_CONFIG: SolOmpConfig = Object.freeze({
@@ -17,10 +19,13 @@ export const DEFAULT_CONFIG: SolOmpConfig = Object.freeze({
   actionFusion: false,
   evidencePreservingReducer: false,
   evidencePreservingReducerTimeoutMs: 90000,
+  evidencePreservingReducerMinBytes: 32768,
+  evidencePreservingReducerMinReductionRatio: 0.5,
 });
 
 const ALLOWED_KEYS = new Set(["version", "observationPack", "actionFusion", "evidencePreservingReducer",
-  "evidencePreservingReducerProvider", "evidencePreservingReducerModel", "evidencePreservingReducerTimeoutMs"]);
+  "evidencePreservingReducerProvider", "evidencePreservingReducerModel", "evidencePreservingReducerTimeoutMs",
+  "evidencePreservingReducerMinBytes", "evidencePreservingReducerMinReductionRatio"]);
 
 export function parseConfig(text: string): SolOmpConfig {
   let value: unknown;
@@ -53,12 +58,24 @@ export function parseConfig(text: string): SolOmpConfig {
   if (!Number.isSafeInteger(timeout) || (timeout as number) < 1 || (timeout as number) > 90000) {
     throw new Error("sol-omp.json: evidencePreservingReducerTimeoutMs must be an integer from 1 to 90000");
   }
+  const minBytes = input.evidencePreservingReducerMinBytes === undefined
+    ? DEFAULT_CONFIG.evidencePreservingReducerMinBytes : input.evidencePreservingReducerMinBytes;
+  if (!Number.isSafeInteger(minBytes) || (minBytes as number) < 4096 || (minBytes as number) > 2_400_000) {
+    throw new Error("sol-omp.json: evidencePreservingReducerMinBytes must be an integer from 4096 to 2400000");
+  }
+  const minRatio = input.evidencePreservingReducerMinReductionRatio === undefined
+    ? DEFAULT_CONFIG.evidencePreservingReducerMinReductionRatio : input.evidencePreservingReducerMinReductionRatio;
+  if (typeof minRatio !== "number" || !Number.isFinite(minRatio) || minRatio < 0 || minRatio >= 1) {
+    throw new Error("sol-omp.json: evidencePreservingReducerMinReductionRatio must be a finite number from 0 (inclusive) to 1 (exclusive)");
+  }
   return Object.freeze({
     version: 1,
     observationPack: (input.observationPack as boolean | undefined) ?? false,
     actionFusion: (input.actionFusion as boolean | undefined) ?? false,
     evidencePreservingReducer: input.evidencePreservingReducer === true,
     evidencePreservingReducerTimeoutMs: timeout as number,
+    evidencePreservingReducerMinBytes: minBytes as number,
+    evidencePreservingReducerMinReductionRatio: minRatio,
     ...(input.evidencePreservingReducerProvider === undefined ? {} : { evidencePreservingReducerProvider: (input.evidencePreservingReducerProvider as string).trim() }),
     ...(input.evidencePreservingReducerModel === undefined ? {} : { evidencePreservingReducerModel: (input.evidencePreservingReducerModel as string).trim() }),
   });

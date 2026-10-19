@@ -4,14 +4,13 @@
 
 同一仓库现提供一个不依赖 MCP 的 Codex CLI MVP adapter：源码、Markdown、配置、diff、搜索和普通文件读取始终沿用 Codex 原路径；只有明确的测试、构建、类型检查、lint 和运行日志命令在模型可见输出达到 4 KiB 时才同步归档，并返回经过精确引用校验的 EPR receipt。配置、边界和读取命令见 [Codex adapter 文档](docs/codex.md)。
 
-**功能边界：** 已实现观察归档、延迟占位、分页恢复和严格用户级配置。2026-09-12 已在 Linux/WSL2、OMP 18.1.18 独立二进制、真实 `openai-codex/gpt-6-astra` 会话中验证打包、逐字节恢复、同 session 进程重启及关闭打包后恢复旧引用。Evidence-Preserving Reducer 已在同一宿主通过真实合成日志、辅助模型、receipt 校验和后续 Context 投影验证。Action Fusion 保持关闭；Online Context Compact 未移植。这不等于上游四项机制全部通过。
+**功能边界：** 已实现观察归档、首次请求前占位、关键词检索、分页恢复和严格用户级配置。2026-10-19 已在 OMP 18.12.2 上通过 103 项测试、真实加载/退出及宿主 session 路径下的检索/逐字节回读烟测。以下 2026-09-12 的真实模型和重启恢复记录保留为历史证据，不能代表本轮模型 E2E：当时使用 OMP 18.1.18，ObservationPack 与 EPR 的合成日志链路通过。Action Fusion 保持关闭；Online Context Compact 未移植。
 
 ## 固定环境
 
-- SoL-Pi 源码：`1559b5cb12c72da4a485bc50fe326586b216fb19`（2026-09-26 同步；所引用的 ObservationPack/EPR 源文件与旧基线一致）。本轮差异、适配判断与验证见 [上游同步报告](docs/upstream-sync-2026-09-26.md)。
-- OMP：本地固定 npm 包及完整兼容目标均为 `18.2.5`；此前 `18.1.19` 验证记录保留在验证报告中。
-- 2026-09-18 复核 OMP 18.2.5：公开根导入保持兼容；typecheck、91 项 Bun 单元测试与真实宿主加载/关闭烟测通过，未发送模型请求。
-- Bun：`1.3.14`。CI 使用 GitHub Actions `ubuntu-22.04` Linux runner。OMP 18.2.5 的运行时导出指向 `node_modules` 内 TypeScript 源码，Node type stripping 不支持该路径，因此不再提供 Node-only fallback。
+- SoL-Pi 源码：`219568034fa54ed121ede80961655e33dfb9d0e3`（2026-10-19 同步）。本轮差异、适配判断与验证见 [升级报告](docs/upstream-sync-2026-10-19.md)。
+- OMP：本地固定 npm 包及本轮验证目标为 `18.12.2`；此前 18.1.18/18.1.19/18.2.5 的记录保留为历史证据。
+- Bun：`1.3.14`。CI 使用 GitHub Actions `ubuntu-22.04` Linux runner。OMP 的运行时导出包含 `node_modules` 内 TypeScript 源码，因此使用 Bun，不提供 Node-only fallback。
 
 `upstream.lock.json` 保留来源、适配文件校验值和分阶段验证记录，不是依赖解析锁。`bun.lock` 是已提交的依赖锁；使用下述 frozen 命令复现依赖。当前安装和实测数据见 [验证报告](docs/validation-report.md)。
 
@@ -21,12 +20,13 @@
 cd SoL-Pi/sol-omp
 bun --version             # 本次验证版本为 1.3.14
 bun install --frozen-lockfile --ignore-scripts  # 需要已有 bun.lock
+bun audit --audit-level=high
 bun run typecheck
 bun test
 bun run smoke
 ```
 
-本次 `bun audit --audit-level=high` **FAIL**：固定 OMP 依赖链中 `adm-zip`、`sharp` 共 3 项 high 告警。用户明确选择保留风险，仅继续合成文本的只读测试；没有升级依赖或宣称漏洞已修复。类型检查/运行测试通过不代替安全审计通过。
+2026-10-19 冻结锁安装后的 `bun audit --audit-level=high` **PASS：0 vulnerabilities**。仅升级 OMP 时旧锁仍保留有告警的 `adm-zip`/`sharp`；本轮用固定 manifest 重新解析传递依赖后复核通过。中途失败和具体版本见 [升级报告](docs/upstream-sync-2026-10-19.md)。类型检查/运行测试通过不代替安全审计通过。
 
 
 `smoke` 从本目录已安装包的 `package.json#bin.omp` 获取真实 CLI，严格检查 OMP/Bun 版本；不使用 PATH 中另一个 OMP。它启动隔离 RPC 会话，检查扩展来源、工具注册、配置路径和 session 接口，再由客户端关闭 stdin，让 OMP 正常清理退出。分别测试关闭/开启打包和 manifest 目录/显式 TS 入口。没有探针、非零退出或超时均失败。
@@ -35,7 +35,7 @@ bun run smoke
 
 ## 使用和配置
 
-正常使用继续由 OMP 管理模型和认证。对于已验证的 OMP 18.2.5，可按选定范围持久链接本地源码；本次用户选择了 user 范围：
+正常使用继续由 OMP 管理模型和认证。本轮只更新 checkout 依赖，不改全局 OMP 或用户配置。已有持久链接的宿主也须先确认版本为 18.12.2；需建立新链接时，按所选范围使用宿主命令，例如 user 范围：
 
 ```bash
 omp plugin link /absolute/path/to/SoL-Pi/sol-omp --scope user
@@ -72,7 +72,7 @@ bun "$SOL_OMP_ROOT/node_modules/.bin/omp" \
 
 ## 观察规则和存储
 
-超过 **10 KiB** 的非空纯文本工具结果都会参与，包括源码、Markdown、配置、diff、搜索、读取、编辑、eval、Bash 和错误结果。唯一的工具级例外是已受 16 KiB/400 行硬限制的 `obs_recall`，避免把恢复页再次归档。小结果、混合图像以及已验证的 Reducer receipt 跳过。
+超过 **10 KiB** 的非空纯文本工具结果都会参与，包括源码、Markdown、配置、diff、搜索、读取、编辑、eval、Bash 和错误结果。工具级例外是受 16 KiB/400 行硬限制的 `obs_recall` 和 `obs_search`，避免把恢复页再次归档。小结果、混合图像以及已验证的 Reducer receipt 跳过。
 
 Context hook 在 provider 请求组装前先成功归档，再从**第一次 provider 请求**开始使用稳定占位；不再把前两次大结果发送给主模型。只改模型 Context 副本，不覆盖原会话消息。保存或校验失败保留原文。
 
@@ -86,6 +86,8 @@ Context hook 在 provider 请求组装前先成功归档，再从**第一次 pro
 每次调用解析当前 session，不缓存首个 session 路径；恢复工具只接受当前 session 的 observation id，不接受任意路径。默认保留归档，关闭/卸载不删除。新文件为 `0600`、对象目录 `0700`；日志可能含代码或敏感内容，勿公开归档。符号链接检查不是对恶意同用户进程的原子安全沙箱。
 
 使用占位中真实 id 调用 `obs_recall`，从 `offset: 0` 开始，跟随返回的 `next_offset`，直到 `eof: true`。偏移为 UTF-8 字节，不是字符。每页含头部最多 16 KiB/400 行；非法 id、负数、非整数或超出文件大小的偏移会拒绝。落在 UTF-8 字符中间时自动向前对齐（最多 3 字节），当次调用直接返回完整字符；头部 `offset` 为实际起点，发生对齐时另附 `requested_offset`。后续继续使用 `next_offset`，避免重复读取。
+
+只需定位错误、文件名或标记时，优先调用 `obs_search({"id":"obs_…","query":"ERROR"})`，避免从头回读。检索为区分大小写的字面量匹配，query 为 1–256 个 UTF-8 字节，不解释正则；每页最多 10 个命中，返回原文 byte `offset`、附近的 `excerpt_offset` 和 JSON 转义摘录。继续传 `next_offset` 搜索，或用 `obs_recall` 在 `excerpt_offset` 处读取精确上下文。检索按当前 session 隔离，关闭打包后仍可读取既有归档，不会重新打包检索结果。
 
 ## 真实模型验证与对照
 
@@ -109,9 +111,27 @@ omp --extension "$SOL_OMP_ROOT/tests/fixtures/model-observation.ts"
 
 对照只切换 ObservationPack，保留 `obs_recall` 工具及原有权限/插件；这不是卸载扩展的纯原生 OMP 大规模基准。同样 8 次模型响应中，观察重放累计字节减少 68.5%，宿主报告累计 token 减少 25.6%。但追加强制完整回读后，该轮累计 token 增加 4.0%、宿主标价估算增加 37.0%；不是实付账单或普遍省钱承诺。适合旧观察较少再被完整读取的场景，按需分页，勿为了“验证使用”在每次正常任务中完整回读。
 
+## EPR 门槛和统一用量统计（2026-10-19）
+
+辅助模型的默认准入门槛从 4 KiB 提高到 **32 KiB**。有效 receipt 还须比原始日志至少缩小 **50%**；未达到时继续使用原文或本地 ObservationPack。两个字段均为可选，已有配置无需改写：
+
+```json
+{
+  "version": 1,
+  "evidencePreservingReducerMinBytes": 32768,
+  "evidencePreservingReducerMinReductionRatio": 0.5
+}
+```
+
+`MinBytes` 接受 4096–2400000 的整数；`MinReductionRatio` 接受 `[0, 1)` 的有限数值。若要保留旧准入条件，可显式设置 4096 和 0；只有在原有 EPR 开关和 provider/model 已配置时才会调用模型。字节门槛在辅助请求前执行；压缩比例在已付出调用后检查，拒绝的 receipt 费用仍计入统计。这些是大小门槛，不证明经济收益；本轮未重跑真实模型费用基准。
+
+每次主会话 settle 后，OMP 文件日志中的 `SOL_OMP_USAGE=` JSON 汇总 `main`、`reducer` 和 `total`：请求数、已观测 attempts、input/output/cacheRead/cacheWrite/totalTokens、目录标价费用估算和累计响应耗时。`elapsedMs` 是本进程观测期的墙钟时间；累计耗时不等于它。辅助调用中被拒绝的 receipt 仍计入总数。缺失、错误或取消响应使 `usageComplete=false`、`costEstimateUsd=null`，`knownCostEstimateUsd` 仅表示已观测部分，不能把未知消耗当免费。没有对应开始事件时 `durationComplete=false`。
+
+统计只覆盖当前扩展进程收到的前台事件和本扩展辅助调用；重启不重建历史账目，不包含宿主未报告的重试或其他插件/子代理调用。主模型与 reducer 的价格来自宿主 usage，数值不是实付账单。即使关闭 EPR，仍记录前台用量供同口径对照；日志不包含提示词、输出正文、命令或凭证。
+
 ## Evidence-Preserving Reducer：配置、外发与运行边界
 
-当前用户级 `/home/carter003/.omp/agent/sol-omp.json` 已切换为 **`opencode-go/deepseek-v4.1-flash`**；普通新 OMP 主会话自动加载，已有进程须重启。2026-09-12 DeepSeek 在与历史 GLM 完全相同的 288,054 字节大日志上生成 1,781 字节有效 receipt，六条 `CRITICAL_STATE` 全部保留，单样本 E2E **PASS**。但同源对比中 DeepSeek Reducer 为 8,995.8 ms / 82,816 tokens / $0.01301955 / `uncertain=true`，GLM 为 4,592.7 ms / 69,242 tokens / $0.0052481 / `uncertain=false`；当前证据下 GLM 在速度、token、费用和 receipt 确定性上更优，两者关键状态均为 6/6。Muse 的失败、修复与成功证据也继续保留；单次样本不证明稳定性或普遍收益。当前实现不传 reducer reasoning，实际档位由服务端默认决定。配置示例：
+历史用户配置在 2026-09-12 切换为 **`opencode-go/deepseek-v4.1-flash`**；本轮没有读取或改写当前用户配置。当天 DeepSeek 在与历史 GLM 完全相同的 288,054 字节大日志上生成 1,781 字节有效 receipt，六条 `CRITICAL_STATE` 全部保留，单样本 E2E **PASS**。但同源对比中 DeepSeek Reducer 为 8,995.8 ms / 82,816 tokens / $0.01301955 / `uncertain=true`，GLM 为 4,592.7 ms / 69,242 tokens / $0.0052481 / `uncertain=false`；这一个样本中 GLM 在速度、token、费用和 receipt 确定性上更优，两者关键状态均为 6/6。Muse 的失败、修复与成功证据也继续保留；单次样本不证明稳定性或普遍收益。当前实现不传 reducer reasoning，实际档位由服务端默认决定。历史路由配置示例：
 
 ```json
 {
@@ -130,7 +150,7 @@ omp --extension "$SOL_OMP_ROOT/tests/fixtures/model-observation.ts"
 
 **时序：** OMP 18.1.19 的 `tool_result` / `context` 没有公开取消 signal，因此 EPR 只收集候选；在公开 `session_stop.signal` 下依次等待辅助请求，不创建后台任务或自动续跑。EPR receipt 从后续 Context 开始使用，但启用 ObservationPack 时，超过 10 KiB 的结果从第一次 provider 请求起已由本地可恢复占位保护。宿主不向子代理发出 settle hook，子代理不承诺 reducer 调用；这不影响通用 Context 投影。
 
-**候选：** 沿用锁定上游的诊断命令正则、至少 4096 字节、最多 600000 字符、最多 2048 输出 token、12 条逐字引用、每条最多 600 字符。只处理实际观察到的纯文本 native bash 结果；支持 native eval 内 bash，但必须能唯一关联外层调用，并在外层完整观察里找到原文的唯一精确文本或 JSON 转义形式。并发父调用歧义、被 eval 截断/重新格式化的结果均保留，不把 native eval 当成 `then_run`。
+**候选：** 沿用锁定上游的诊断命令正则，大小门槛默认 32768 字节（可配置，最低 4096），最多 600000 字符、最多 2048 输出 token、12 条逐字引用、每条最多 600 字符。只处理实际观察到的纯文本 native bash 结果；支持 native eval 内 bash，但必须能唯一关联外层调用，并在外层完整观察里找到原文的唯一精确文本或 JSON 转义形式。并发父调用歧义、被 eval 截断/重新格式化的结果均保留，不把 native eval 当成 `then_run`。
 
 **失败与组合：** 不返回任何 `tool_result` 改写。除事件布尔值外，还检查实际 `exitCode`、details 错误/超时状态和明确的宿主失败尾注；结构化错误/超时标记优先，存在数字 `details.exitCode` 时该值对进程退出状态具有权威性，正文中的 `Command exited with code N` 只在没有结构化退出码时作为保守回退，避免日志示例覆盖真实 exit 0。矛盾的成功诊断不交给辅助模型。已确认失败日志可以形成 `status=failure` receipt，原消息错误字段保持不变。模型失败、超时、取消、可疑内容、归档/引用/状态校验失败时，EPR 不生成 receipt；启用 ObservationPack 时，通用本地归档继续处理这些超过 10 KiB 的纯文本回退。已验证 receipt 保持原样。
 

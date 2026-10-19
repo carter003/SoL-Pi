@@ -77,6 +77,7 @@ export class EvidencePreservingReducer {
       state = { activeEvals: new Set(), candidates: new Map(), targets: new Map(), config: {
         ...loadReducerConfig(root, { reducerProvider: this.config.evidencePreservingReducerProvider, reducerModel: this.config.evidencePreservingReducerModel }),
         timeoutMs: this.config.evidencePreservingReducerTimeoutMs,
+        minBytes: this.config.evidencePreservingReducerMinBytes,
       } };
       this.sessions.set(root, state);
     }
@@ -216,7 +217,11 @@ export class EvidencePreservingReducer {
         const checked = validateReceipt(response.outputText, archive, candidate.body, candidate.isError);
         if (!checked.ok) { fallback(checked.reason); continue; }
         const receipt = receiptText(candidate.command, archive, checked.value, response);
-        if (Buffer.byteLength(receipt, "utf8") >= archive.bytes) { fallback("receipt-not-smaller"); continue; }
+        const receiptBytes = Buffer.byteLength(receipt, "utf8");
+        if (receiptBytes >= archive.bytes) { fallback("receipt-not-smaller"); continue; }
+        if (1 - receiptBytes / archive.bytes < this.config.evidencePreservingReducerMinReductionRatio) {
+          fallback("receipt-under-min-reduction"); continue;
+        }
         // Recheck disk, including existing-object integrity, before caching a projection.
         await archiveBody(config.storeRoot, candidate.body);
         if (expired()) { fallback(abortReason()); continue; }
@@ -268,13 +273,18 @@ export class EvidencePreservingReducer {
   }
 }
 
-export function registerEvidencePreservingReducer(api: ExtensionAPI, config: SolOmpConfig): EvidencePreservingReducer | undefined {
+export function registerEvidencePreservingReducer(api: ExtensionAPI, config: SolOmpConfig,
+  onEvent?: (event: Record<string, unknown>) => void): EvidencePreservingReducer | undefined {
   if (!config.evidencePreservingReducer) return undefined;
   // OMP's public logger writes out of band to its rotating log file. Writing
   // successful telemetry to stderr paints it as a red error below the TUI
   // editor even though the reducer completed normally.
   const reducer = new EvidencePreservingReducer(config, callReducer,
-    event => api.logger.info(`SOL_OMP_EPR=${JSON.stringify(event)}`));
+    event => {
+      api.logger.info(`SOL_OMP_EPR=${JSON.stringify(event)}`);
+      // Optional accounting cannot invalidate a successful archive or receipt.
+      try { onEvent?.(event); } catch { api.logger.warn("[sol-omp] reducer accounting unavailable"); }
+    });
   const reportFailure = (ctx: ExtensionContext, message: string) => {
     api.logger.error(message);
     if (ctx.hasUI && typeof ctx.ui?.notify === "function") ctx.ui.notify(message, "warning");

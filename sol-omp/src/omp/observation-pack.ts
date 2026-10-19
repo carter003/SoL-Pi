@@ -19,12 +19,13 @@ import {
   readRecallChunk,
 } from "../upstream/sol-pi/observation-pack/observation.ts";
 import { detectTruncation, resolveArtifactContent } from "./artifact-source.ts";
+import { searchArchive } from "./observation-search.ts";
 
 export const RECALL_MAX_BYTES = 16 * 1024;
 export const RECALL_MAX_LINES = 400;
 const RECALL_LIMITS = { maxBytes: RECALL_MAX_BYTES - 512, maxLines: RECALL_MAX_LINES - 2 };
 export function isCompressibleObservation(toolName: string, _input: unknown): boolean {
-  return toolName.toLowerCase() !== "obs_recall";
+  return !["obs_recall", "obs_search"].includes(toolName.toLowerCase());
 }
 
 /** Re-evaluated on every context event/tool call; never cache the first session. */
@@ -61,6 +62,22 @@ async function checkArchiveDirectories(root: string): Promise<void> {
 
 /** Provider-only projection; this never owns or edits session history. */
 export class ObservationPack {
+  async search(root: string, id: string, query: string, offset = 0, signal?: AbortSignal) {
+    signal?.throwIfAborted();
+    if (typeof id !== "string" || !isObservationId(id)) throw new Error("Invalid observation id");
+    await checkArchiveDirectories(root);
+    const result = await searchArchive(observationPath(root, id), query, offset, signal);
+    const text = [
+      `[obs_search id=${id} matches=${result.matches.length} next_offset=${result.nextOffset} eof=${result.eof}]`,
+      "Literal case-sensitive matches; offsets are UTF-8 bytes. Use obs_recall at excerpt_offset for exact pages.",
+      ...result.matches.map(match => `offset=${match.offset} excerpt_offset=${match.excerptOffset} text=${JSON.stringify(match.text)}`),
+    ].join("\n");
+    if (Buffer.byteLength(text, "utf8") > RECALL_MAX_BYTES || countLines(text) > RECALL_MAX_LINES) {
+      throw new Error("Search output exceeded its hard limit");
+    }
+    return { content: [{ type: "text" as const, text }], details: { id, ...result } };
+  }
+
   async project(
     messages: AgentMessage[],
     root: string,
@@ -148,6 +165,21 @@ export function registerObservationPack(api: ExtensionAPI, enabled: boolean, red
     }),
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
       return pack.recall(runtimeRoot(ctx), params.id, params.offset ?? 0, signal);
+    },
+  });
+  api.registerTool({
+    name: "obs_search",
+    label: "Search Observation",
+    description: "Find literal, case-sensitive text in a session observation without reading every page. Returns up to 10 bounded excerpts and exact byte offsets. Continue with next_offset until eof, or use obs_recall at excerpt_offset.",
+    approval: "read",
+    loadMode: "essential",
+    parameters: Type.Object({
+      id: Type.String({ pattern: "^obs_[a-f0-9]{24}$", description: "Observation id from a sol-omp placeholder" }),
+      query: Type.String({ minLength: 1, maxLength: 256, description: "Literal text, 1–256 UTF-8 bytes; no regular expressions" }),
+      offset: Type.Optional(Type.Integer({ minimum: 0, description: "Start searching at this byte offset; default 0. Use next_offset to continue." })),
+    }),
+    async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+      return pack.search(runtimeRoot(ctx), params.id, params.query, params.offset ?? 0, signal);
     },
   });
   // Retain read-only recall when disabled; do NOT install a context hook.

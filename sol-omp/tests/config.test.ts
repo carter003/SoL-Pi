@@ -83,3 +83,18 @@ test("reducer route identifiers normalize surrounding whitespace and reject blan
   requireSupportedFeatures(DEFAULT_CONFIG);
   assert.throws(() => requireSupportedFeatures(parseConfig('{"version":1,"actionFusion":true}')), /same native tool/);
 });
+
+test("reducer admission and receipt reduction limits are explicit and strictly validated", () => {
+  assert.equal(DEFAULT_CONFIG.evidencePreservingReducerMinBytes, 32768);
+  assert.equal(DEFAULT_CONFIG.evidencePreservingReducerMinReductionRatio, 0.5);
+  const parsed = parseConfig(JSON.stringify({ version: 1, evidencePreservingReducerMinBytes: 4096,
+    evidencePreservingReducerMinReductionRatio: 0 }));
+  assert.equal(parsed.evidencePreservingReducerMinBytes, 4096);
+  assert.equal(parsed.evidencePreservingReducerMinReductionRatio, 0);
+  for (const value of [null, false, "32768", 4095, 4096.5, 2400001]) {
+    assert.throws(() => parseConfig(JSON.stringify({ version: 1, evidencePreservingReducerMinBytes: value })), /MinBytes/);
+  }
+  for (const value of [null, false, "0.5", -0.1, 1, 2]) {
+    assert.throws(() => parseConfig(JSON.stringify({ version: 1, evidencePreservingReducerMinReductionRatio: value })), /MinReductionRatio/);
+  }
+});

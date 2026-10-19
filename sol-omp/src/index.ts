@@ -3,6 +3,7 @@ import { loadConfig } from "./config.ts";
 import { requireSupportedFeatures } from "./omp/action-fusion.ts";
 import { registerObservationPack } from "./omp/observation-pack.ts";
 import { registerEvidencePreservingReducer } from "./omp/evidence-preserving-reducer.ts";
+import { registerUsageTelemetry, UsageLedger } from "./omp/usage.ts";
 /** OMP injects its public SDK and schema builder. No original Pi runtime is imported. */
 export default async function solOmp(api: ExtensionAPI): Promise<void> {
   if (typeof api.pi?.getAgentDir !== "function" || !api.typebox?.Type) {
@@ -11,7 +12,9 @@ export default async function solOmp(api: ExtensionAPI): Promise<void> {
   const { config, path } = await loadConfig(api.pi.getAgentDir());
   // Reject an unsupported request before registering ANY tool or event handler.
   requireSupportedFeatures(config);
-  const reducer = registerEvidencePreservingReducer(api, config);
+  const usage = new UsageLedger();
+  const reducer = registerEvidencePreservingReducer(api, config, event => usage.recordReducer(event));
+  registerUsageTelemetry(api, usage);
   registerObservationPack(api, config.observationPack, reducer);
   api.on("session_start", (_event, ctx) => {
     const loaded = `[sol-omp] loaded observationPack=${config.observationPack} actionFusion=false config=${path}`;
