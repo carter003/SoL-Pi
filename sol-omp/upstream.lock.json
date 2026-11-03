@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "recordedAt": "2026-10-20",
+  "recordedAt": "2026-11-03",
   "kind": "source-provenance-and-candidate-environment; NOT a dependency resolution lock",
   "fork": {
     "repository": "carter003/SoL-Pi",
@@ -95,30 +95,31 @@
   },
   "omp": {
     "package": "@oh-my-pi/pi-coding-agent",
-    "candidateVersion": "18.12.2",
-    "tag": "v18.12.2",
-    "commit": "1d5aff90b057ce7dbfe32ea557a527c1b3144b72",
+    "candidateVersion": "18.16.0",
+    "tag": "v18.16.0",
+    "commit": "650f3a108229ee11bf68ba3377f4e8c3391cd424",
     "installationForm": "local npm package run with pinned Bun",
-    "actuallyInstalledVersion": "18.12.2",
+    "actuallyInstalledVersion": "18.16.0",
     "runtimeVerifiedVersions": [
       "18.1.18",
       "18.1.19",
       "18.2.5",
-      "18.12.2"
+      "18.12.2",
+      "18.16.0"
     ],
     "loadStatus": "PASS",
     "auditedFiles": [
       {
         "path": "packages/coding-agent/src/extensibility/extensions/types.ts",
-        "gitBlobSha": "4921c96d2a2816ea01940c621c26dc6ec447f8e8"
+        "gitBlobSha": "a5515b9a5452d0c8dc94be7b58f1c7fbf10c9875"
       },
       {
         "path": "packages/coding-agent/src/extensibility/extensions/loader.ts",
-        "gitBlobSha": "e277e6d58c0f5869b1ee96df0b9a17872c463581"
+        "gitBlobSha": "30c18d3d83b5820b84b75db5abb229b9ea59ed15"
       },
       {
         "path": "packages/coding-agent/src/extensibility/extensions/wrapper.ts",
-        "gitBlobSha": "f482104bfb1ca305e4820942efc2d0275ed80967"
+        "gitBlobSha": "c5205cdc0746feaa6029e21789895e94b3f49ff2"
       },
       {
         "path": "packages/coding-agent/src/exec/exec.ts",
@@ -130,20 +131,21 @@
       },
       {
         "path": "packages/utils/src/dirs.ts",
-        "gitBlobSha": "6c5317f18730187f395bec3b06ac32a0cb58083b"
+        "gitBlobSha": "883cd89fde4ab3b3768d06ff7f3805b6a7a271d2"
       },
       {
         "path": "docs/extension-loading.md",
-        "gitBlobSha": "846727f6c37f7ded2915b1eba7683c34109ccc6c"
+        "gitBlobSha": "11d9905cde94836669de1006deb2ce945d976b3d"
       }
     ],
     "verificationScope": "semantic typecheck, 103 Bun unit tests, real CLI load/shutdown, tool registration, public session paths, literal archive search and exact paged recall; MODEL_E2E not run"
   },
   "bun": {
-    "candidateVersion": "1.3.14",
-    "actuallyInstalledVersion": "1.3.14",
+    "candidateVersion": "1.4.4",
+    "actuallyInstalledVersion": "1.4.4",
     "verifiedVersions": [
-      "1.3.14"
+      "1.3.14",
+      "1.4.4"
     ]
   },
   "actuallyExecutedEnvironment": {
@@ -450,5 +452,34 @@
     "evidence": "docs/upstream-sync-2026-10-19.md",
     "completedAt": "2026-10-20T00:04:33.360254+08:00"
   },
-  "historicalRecordsNote": "validation, ciEvidence, actuallyExecutedEnvironment, contextBudgetFix, evidencePreservingReducer (including currentUserRoute), omp18_2_5Validation, recallUtf8Alignment and upstreamSync20260926 retain their original historical scope. Current run results are in upstreamSync20261019; no user route was re-read or changed."
+  "upstreamSync20261103": {
+    "sourceVerification": {
+      "verifiedUpstreamArchiveBlobs": 94,
+      "rootRuntimeFilesMatchingTarget": 25,
+      "ompTag": "v18.16.0",
+      "ompCommit": "650f3a108229ee11bf68ba3377f4e8c3391cd424",
+      "piVersion": "1.5.0",
+      "bunVersion": "1.4.4"
+    },
+    "checks": {
+      "rootCheck": "PASS: 268 tests, typecheck, package inspection",
+      "rootAudit": "PASS: 0 high / 0 critical",
+      "piStrictCompatibility": "PASS: Pi 1.5.0",
+      "allMechanisms": "PASS: 4 tests",
+      "ompTypecheck": "PASS",
+      "ompTests": "PASS: 103 tests",
+      "ompSmoke": "PASS: disabled/enabled loading, obs_recall/obs_search sources, exact 28024-byte recall and search; EOF shutdown on OMP 18.16.0 / Bun 1.4.4",
+      "ompAudit": "PASS: 0 vulnerabilities (zod override GHSA-mrhx-c7xc-m3w5)",
+      "skillExamples": "PASS: 15 tests",
+      "actionFusion": "BLOCKED; same-tool delegation only",
+      "modelE2E": "NOT_RUN"
+    },
+    "dependencyLocks": {
+      "package-lock.json": "8f362af0a0fd7ea2b609dfe701cb13d98dd901fb96385ecb145ba5e44165bacb",
+      "sol-omp/bun.lock": "3add83ec2b1749d5d02ab433bc477400602e8d2d492116b2ab7d697bbc557d6d"
+    },
+    "evidence": "docs/upstream-sync-2026-11-03.md",
+    "completedAt": "2026-11-03T09:45:00.000000+08:00"
+  },
+  "historicalRecordsNote": "validation, ciEvidence, actuallyExecutedEnvironment, contextBudgetFix, evidencePreservingReducer (including currentUserRoute), omp18_2_5Validation, recallUtf8Alignment, upstreamSync20260926 and upstreamSync20261019 retain their original historical scope. Current run results are in upstreamSync20261103; no user route was re-read or changed."
 }

@@ -4,7 +4,7 @@
 
 - fork：`carter003/SoL-Pi`，读取到的 main：`d7ecfc089944f0d04b80122a0a9a6ca0d786f3d0`。
 - 上游项目：NVIDIA `NVlabs/SoL-Pi`；当前基线为 `219568034fa54ed121ede80961655e33dfb9d0e3`（2026-10-19 同步）。相对 9 月基线，10 项来源映射中 5 项变化；逐项判断见下节，不自动追踪 main。
-- OMP：固定 npm 包 `@oh-my-pi/pi-coding-agent@18.12.2`，release tag `v18.12.2` 指向 `1d5aff90b057ce7dbfe32ea557a527c1b3144b72`。7 个扩展审计文件的 Git blob 已更新；完整类型检查、103 项 Bun 测试及真实加载/关闭、归档检索/恢复烟测通过。各项通过/阻塞范围以 `docs/validation-report.md` 为准，不泛称模型 E2E 兼容；旧版本记录保留为历史证据。
+- OMP：固定 npm 包 `@oh-my-pi/pi-coding-agent@18.16.0`，release tag `v18.16.0` 指向 `650f3a108229ee11bf68ba3377f4e8c3391cd424`。7 个扩展审计文件的 Git blob 已更新；完整类型检查、103 项 Bun 测试及真实加载/关闭、归档检索/恢复烟测通过。各项通过/阻塞范围以 `docs/validation-report.md` 为准，不泛称模型 E2E 兼容；旧版本记录保留为历史证据。
 - 用户任务原文：`docs/implementation-plan-mvp.md`，按上传文件原样保留。
 
 初次交付历史：当时未克隆完整仓库，本地容器 GitHub DNS 解析失败，GitHub 连接和远端 Actions 可用；通过固定源文件新增 `sol-omp/`，未改变根 SoL-Pi。后续按明确的上游同步任务更新根扩展，当前根运行源码与所选 NVIDIA 提交逐文件一致。
@@ -25,6 +25,15 @@
 适配配置增加可选 `evidencePreservingReducerMinBytes`（默认 32768）及 `evidencePreservingReducerMinReductionRatio`（默认 0.5）。旧用户文件无需改写；不够大的日志避免辅助请求，receipt 比例不足则保留原文/本地打包，已经发生的辅助费用仍计入。两项仅约束大小，未宣称净经济收益。
 
 OMP 固定宿主升级后旧锁仍保留有漏洞的可选依赖，审计失败。普通 `bun update` 没有刷新这些解析；随后在隔离目录从完全相同的精确 manifest 生成新锁，纳入项目并冻结安装，更新 transformers 4.3.1 / ONNX 1.30.0 / sharp 0.35.5 / adm-zip 0.6.1，最终审计 0 告警。没有强制 override 或手动改动宿主源码。Action Fusion 在最新公开接口下仍 BLOCKED。命令与中途失败见 [升级报告](docs/upstream-sync-2026-10-19.md)。
+## 2026-11-03 同步与适配
+
+- 根项目：Pi 开发依赖升级 `1.3.0` → `1.5.0`。适配 `scripts/check-pi-compat.mjs` 测试矩阵，更新文档与安装指引（`agents-install.md`、`README.md`、`docs/compatibility.md`、`THIRD_PARTY_NOTICES.md`）。在 `tests/helpers.ts` 中引入安全 `initTheme?.()` 初始化，解决 Pi 1.5.0 `write` 渲染器新增代码高亮导致测试中 Theme 未初始化的报错。根检查 268 项 Vitest 测试 PASS，Pi 兼容性严格检查 PASS，四机制集成测试 PASS，Skill 示例 15 项测试 PASS。
+- OMP 适配器：升级 `@oh-my-pi/pi-coding-agent` 与 `@oh-my-pi/pi-ai` 至 `18.16.0`（tag `v18.16.0`，commit `650f3a108229ee11bf68ba3377f4e8c3391cd424`）。
+- Bun 运行时：由于 OMP 18.16.0 引入了 `Bun.semver.order(Bun.version, "1.4.4") < 0` 强制门禁，升级 Bun `1.3.14` → `1.4.4`。CI 与 package.json 同步更新。
+- 安全漏洞审计：OMP 传递依赖中的 `chromium-bidi` 依赖旧版本 `zod`（存在 GHSA-mrhx-c7xc-m3w5 内存耗尽高危风险），在 `sol-omp/package.json` 中配置 `"overrides": { "zod": "4.6.7" }`，重新生成 `bun.lock` 并冻结安装。最终 `bun audit --audit-level=high` 与 `npm audit --audit-level=high` 均为 0 高危漏洞。
+- Action Fusion：最新 OMP 18.16.0 的 `ExtensionContext.invokeTool` 仍受限于同名委托，保持 **BLOCKED / actionFusion=false**。
+- 验证：`bun run typecheck` PASS；`bun test` 103 PASS / 0 FAIL；`bun run smoke` PASS（OMP 18.16.0 / Bun 1.4.4 真实开/关加载、归档检索、28,024 字节精确逐字节回读与 EOF 正常退出）。
+
 
 ## 源码映射
 

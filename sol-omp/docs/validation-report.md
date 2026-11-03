@@ -1,5 +1,15 @@
 # sol-omp 验证报告
 
+## 2026-11-03 上游同步、Pi 1.5.0 与 OMP 18.16.0 升级
+
+当前来源基线保持 NVIDIA `2195680`（0 领先提交），根开发依赖升级至 Pi `1.5.0`，OMP 适配器升级至 `18.16.0` / Bun `1.4.4`。
+
+- 根检查：**268 tests PASS**，四机制专项 **4 PASS**，Skill 示例 **15 PASS**；`check-pi-compat.mjs --strict` PASS（明确识别 Pi 1.5.0）。根安全审计为 **0 high / 0 critical**。
+- 修复：在 `tests/helpers.ts` 中引入安全 `initTheme?.()` 初始化，解决 Pi 1.5.0 `write` 渲染器新增代码语法高亮在测试环境中 Theme 未初始化的报错。
+- 适配器检查：TypeScript 类型检查通过，**103 tests PASS**。真实 OMP 烟测（`bun run smoke`）覆盖 ObservationPack 开/关双模式、`obs_recall` 与 `obs_search` 工具注册、真实 session 路径下归档检索与 28,024 字节逐字节回读通过、EOF 正常退出。
+- 依赖审计：配置 `"overrides": { "zod": "4.6.7" }` 消除 OMP 传递依赖中的 `chromium-bidi -> zod` 内存耗尽高危风险（GHSA-mrhx-c7xc-m3w5），`bun audit --audit-level=high` 达到 **0 vulnerabilities**。
+- 状态边界：Action Fusion 保持 **BLOCKED / actionFusion=false**。未请求模型，MODEL_E2E=NOT_RUN。详细命令与证据详见 [升级报告](upstream-sync-2026-11-03.md)。
+
 ## 2026-10-19 上游同步、OMP 升级和检索/统计
 
 当前来源为 NVIDIA `2195680`，根开发依赖 Pi `1.3.0`，适配器固定 OMP `18.12.2` / Bun `1.3.14`。根检查 **268 tests PASS**，四机制专项 **4 PASS**；适配器检查 **103 tests PASS**。真实 OMP 烟测覆盖开关两种加载方式、两个只读工具注册，以及宿主 session 路径下的关键词检索和 28,024 字节原文逐字节回读。未请求模型。

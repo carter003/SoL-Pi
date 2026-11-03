@@ -1,5 +1,7 @@
 # Action Fusion：AF-OMP-001
 
+2026-11-03 复核：OMP `v18.16.0`（`650f3a108229ee11bf68ba3377f4e8c3391cd424`）的公开 `ExtensionContext.invokeTool` 仍为同名原生工具委托；`ExtensionAPI` 没有当前会话的任意受保护工具派发方法。保持 **BLOCKED / actionFusion=false**。
+
 2026-10-19 复核：OMP `v18.12.2`（`1d5aff90b057ce7dbfe32ea557a527c1b3144b72`）的公开 `ExtensionContext.invokeTool` 仍为同名原生工具委托；`ExtensionAPI` 没有当前会话的任意受保护工具派发方法。`loader.ts` 的 `exec` 继续直达 execCommand，正常工具的审批和 `tool_call` 则在 wrapper 中。保持 **BLOCKED / actionFusion=false**。本轮没有执行融合权限验收，也未改变宿主审批。
 
 固定证据：[类型声明](https://github.com/can1357/oh-my-pi/blob/1d5aff90b057ce7dbfe32ea557a527c1b3144b72/packages/coding-agent/src/extensibility/extensions/types.ts)、[loader](https://github.com/can1357/oh-my-pi/blob/1d5aff90b057ce7dbfe32ea557a527c1b3144b72/packages/coding-agent/src/extensibility/extensions/loader.ts)、[wrapper](https://github.com/can1357/oh-my-pi/blob/1d5aff90b057ce7dbfe32ea557a527c1b3144b72/packages/coding-agent/src/extensibility/extensions/wrapper.ts)。以下为初次审计的历史记录。

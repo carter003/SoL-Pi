@@ -4,13 +4,13 @@
 
 同一仓库现提供一个不依赖 MCP 的 Codex CLI MVP adapter：源码、Markdown、配置、diff、搜索和普通文件读取始终沿用 Codex 原路径；只有明确的测试、构建、类型检查、lint 和运行日志命令在模型可见输出达到 4 KiB 时才同步归档，并返回经过精确引用校验的 EPR receipt。配置、边界和读取命令见 [Codex adapter 文档](docs/codex.md)。
 
-**功能边界：** 已实现观察归档、首次请求前占位、关键词检索、分页恢复和严格用户级配置。2026-10-19 已在 OMP 18.12.2 上通过 103 项测试、真实加载/退出及宿主 session 路径下的检索/逐字节回读烟测。以下 2026-09-12 的真实模型和重启恢复记录保留为历史证据，不能代表本轮模型 E2E：当时使用 OMP 18.1.18，ObservationPack 与 EPR 的合成日志链路通过。Action Fusion 保持关闭；Online Context Compact 未移植。
+**功能边界：** 已实现观察归档、首次请求前占位、关键词检索、分页恢复和严格用户级配置。2026-11-03 已在 OMP 18.16.0 / Bun 1.4.4 上通过 103 项测试、真实加载/退出及宿主 session 路径下的检索/逐字节回读烟测。以下历史验证记录保留为证据，不能代表本轮模型 E2E：Action Fusion 保持关闭；Online Context Compact 未移植。
 
 ## 固定环境
 
 - SoL-Pi 源码：`219568034fa54ed121ede80961655e33dfb9d0e3`（2026-10-19 同步）。本轮差异、适配判断与验证见 [升级报告](docs/upstream-sync-2026-10-19.md)。
-- OMP：本地固定 npm 包及本轮验证目标为 `18.12.2`；此前 18.1.18/18.1.19/18.2.5 的记录保留为历史证据。
-- Bun：`1.3.14`。CI 使用 GitHub Actions `ubuntu-22.04` Linux runner。OMP 的运行时导出包含 `node_modules` 内 TypeScript 源码，因此使用 Bun，不提供 Node-only fallback。
+- OMP：本地固定 npm 包及本轮验证目标为 `18.16.0`；此前 18.1.18/18.1.19/18.2.5/18.12.2 的记录保留为历史证据。
+- Bun：`1.4.4`。CI 使用 GitHub Actions `ubuntu-22.04` Linux runner。OMP 的运行时导出包含 `node_modules` 内 TypeScript 源码，因此使用 Bun，不提供 Node-only fallback。
 
 `upstream.lock.json` 保留来源、适配文件校验值和分阶段验证记录，不是依赖解析锁。`bun.lock` 是已提交的依赖锁；使用下述 frozen 命令复现依赖。当前安装和实测数据见 [验证报告](docs/validation-report.md)。
 
@@ -35,7 +35,7 @@ bun run smoke
 
 ## 使用和配置
 
-正常使用继续由 OMP 管理模型和认证。本轮只更新 checkout 依赖，不改全局 OMP 或用户配置。已有持久链接的宿主也须先确认版本为 18.12.2；需建立新链接时，按所选范围使用宿主命令，例如 user 范围：
+正常使用继续由 OMP 管理模型和认证。本轮只更新 checkout 依赖，不改全局 OMP 或用户配置。已有持久链接的宿主也须先确认版本为 18.16.0；需建立新链接时，按所选范围使用宿主命令，例如 user 范围：
 
 ```bash
 omp plugin link /absolute/path/to/SoL-Pi/sol-omp --scope user

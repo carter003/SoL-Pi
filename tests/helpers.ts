@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import type { ExtensionAPI, ExtensionContext, SessionEntry, Theme, ToolDefinition } from "@earendil-works/pi-coding-agent";
+import { initTheme, type ExtensionAPI, type ExtensionContext, type SessionEntry, type Theme, type ToolDefinition } from "@earendil-works/pi-coding-agent";
 import type { Component } from "@earendil-works/pi-tui";
 import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -17,6 +17,12 @@ export const plainTheme = {
 	bg: (_color: string, text: string) => text,
 	bold: (text: string) => text,
 } as unknown as Theme;
+
+try {
+	initTheme?.();
+} catch {
+	// Optional in environments or Pi versions without theme support.
+}
 
 export function componentText(component: Component, width = 120): string {
 	return component

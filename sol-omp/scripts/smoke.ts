@@ -7,8 +7,8 @@ import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const EXPECTED_OMP = "18.12.2";
-const EXPECTED_BUN = "1.3.14";
+const EXPECTED_OMP = "18.16.0";
+const EXPECTED_BUN = "1.4.4";
 class Blocked extends Error {}
 
 async function runCli(cli: string, args: string[], cwd: string, env: NodeJS.ProcessEnv) {
@@ -84,7 +84,7 @@ async function main(): Promise<void> {
       };
       const version = await runCli(cli, ["--version"], project, env);
       assert.equal(version.code, 0, version.stderr);
-      assert.match(version.stdout + version.stderr, /\b18\.12\.2\b/);
+      assert.match(version.stdout + version.stderr, new RegExp(`\\b${EXPECTED_OMP.replace(/\./g, "\\.")}\\b`));
       // Explicit catalog selection avoids the credential-filtered automatic default.
       // No prompt is sent, no credentials are injected, and this does not test model inference.
       const args = ["--model", "openai/gpt-5", "--mode", "rpc", "--no-extensions", "--no-skills", "--no-rules", "--no-lsp", "--no-pty",

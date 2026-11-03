@@ -49,7 +49,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const PI_FLOOR = "0.84.2";
-const TESTED_PI_VERSIONS = ["0.84.2", "1.0.4", "1.3.0"];
+const TESTED_PI_VERSIONS = ["0.84.2", "1.0.4", "1.3.0", "1.5.0"];
 const PI_CODING_AGENT = "@earendil-works/pi-coding-agent";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");

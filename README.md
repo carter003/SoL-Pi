@@ -70,14 +70,14 @@ Read our paper: [SoL-Pi: Recursively Scaling Auto-Research Loops for Efficient A
 
 - Node.js 22.19 or newer
 - npm
-- `@earendil-works/pi-coding-agent` 0.84.2 or newer; tested with 0.84.2, 1.0.4, and 1.3.0. Install 1.3.0: a fresh install of Pi 1.0.x or 1.1.0 now fails to start, because those releases do not pin their internal packages. Other versions are untested: `scripts/check-pi-compat.mjs` warns on them, and `--strict` fails.
+- `@earendil-works/pi-coding-agent` 0.84.2 or newer; tested with 0.84.2, 1.0.4, 1.3.0, and 1.5.0. Install 1.5.0: a fresh install of Pi 1.0.x or 1.1.0 now fails to start, because those releases do not pin their internal packages. Other versions are untested: `scripts/check-pi-compat.mjs` warns on them, and `--strict` fails.
 
 ### Install
 
 Install the latest tested Pi release:
 
 ```bash
-npm install --global @earendil-works/pi-coding-agent@1.3.0
+npm install --global @earendil-works/pi-coding-agent@1.5.0
 ```
 
 Pi 0.84.2 remains supported and tested; install `@earendil-works/pi-coding-agent@0.84.2` instead to stay on it.
