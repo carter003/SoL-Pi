@@ -11,3 +11,4 @@ OMP 18.16.0 exports runtime TypeScript from `node_modules`; Node's type strippin
 The fake-API unit tests and TypeScript syntax checks do not prove OMP compatibility.
 Keep Action Fusion disabled until a public dispatch preserves BOTH command approval and tool_call interception.
 Report PASS/FAIL/BLOCKED/NOT_RUN honestly; runtime verification must be evidenced by real command results, not inferred from CI configuration.
+14. Work directly on `main` by default; do not create separate update branches unless explicitly requested.

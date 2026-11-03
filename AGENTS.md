@@ -8,3 +8,7 @@ For any request that installs, builds, configures, or validates SoL-Pi:
 4. Keep upstream Pi unmodified; SoL-Pi must remain a standalone extension.
 
 For ordinary repository changes, preserve the same compatibility and secret-handling constraints.
+
+## Branch and Git workflow
+
+- Work directly on `main` by default. Do not create separate feature, topic, or update branches unless explicitly requested.
